@@ -23,4 +23,25 @@ const requireProjectAccess = (...allowed) => async (req, res, next) => {
   next();
 };
 
-module.exports = { requireProjectAccess };
+// Loads the task and checks the user belongs to its project's team
+const requireTaskAccess = () => async (req, res, next) => {
+  const { taskId } = req.params;
+  if (!isUuid(taskId)) return res.status(400).json({ message: 'Invalid task id' });
+
+  const { rows } = await pool.query(
+    `SELECT t.id, t.project_id, t.status, t.position, t.created_by,
+            p.team_id, p.is_archived, tm.role
+     FROM tasks t
+     JOIN projects p ON p.id = t.project_id
+     JOIN team_members tm ON tm.team_id = p.team_id AND tm.user_id = $2
+     WHERE t.id = $1`,
+    [taskId, req.user.id]
+  );
+  if (rows.length === 0) return res.status(404).json({ message: 'Task not found' });
+
+  req.task = rows[0];
+  req.teamRole = rows[0].role;
+  next();
+};
+
+module.exports = { requireProjectAccess, requireTaskAccess };
