@@ -7,7 +7,7 @@ const authRoutes = require('./routes/auth.routes');
 const teamRoutes = require('./routes/team.routes');
 const invitationRoutes = require('./routes/invitation.routes');
 const projectRoutes = require('./routes/project.routes');
-
+  const commentRoutes = require('./routes/comment.routes');
 const app = express();
 
 app.use(helmet());
@@ -28,7 +28,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/teams', teamRoutes);
 app.use('/api/invitations', invitationRoutes);
 app.use('/api', projectRoutes);
-
+  app.use('/api', commentRoutes);
 // Catches any error thrown inside a route
 app.use((err, req, res, next) => {
   console.error(err);
