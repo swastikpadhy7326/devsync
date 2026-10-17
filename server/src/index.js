@@ -4,6 +4,8 @@ const cors = require('cors');
 const helmet = require('helmet');
 const pool = require('./db');
 const authRoutes = require('./routes/auth.routes');
+const teamRoutes = require('./routes/team.routes');
+const invitationRoutes = require('./routes/invitation.routes');
 
 const app = express();
 
@@ -22,6 +24,8 @@ app.get('/api/health', async (req, res) => {
 });
 
 app.use('/api/auth', authRoutes);
+app.use('/api/teams', teamRoutes);
+app.use('/api/invitations', invitationRoutes);
 
 // Catches any error thrown inside a route
 app.use((err, req, res, next) => {
