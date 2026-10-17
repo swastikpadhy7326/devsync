@@ -1,6 +1,7 @@
 const pool = require('../db');
 const { logActivity } = require('../utils/activity');
 const { isUuid } = require('../utils/uuid');
+const { emitToProject } = require('../realtime');
 
 exports.createComment = async (req, res) => {
   if (req.task.is_archived) {
@@ -20,7 +21,9 @@ exports.createComment = async (req, res) => {
     entityType: 'comment', entityId: rows[0].id, metadata: { taskId: req.task.id },
   });
 
-  res.status(201).json({ comment: { ...rows[0], user_name: user.rows[0].name } });
+  const comment = { ...rows[0], user_name: user.rows[0].name };
+  emitToProject(req.task.project_id, 'comment:added', { comment, by: req.user.id });
+  res.status(201).json({ comment });
 };
 
 exports.listComments = async (req, res) => {
@@ -69,5 +72,8 @@ exports.deleteComment = async (req, res) => {
     entityType: 'comment', entityId: comment.id, metadata: { taskId: comment.task_id },
   });
 
+  emitToProject(comment.project_id, 'comment:deleted', {
+    commentId: comment.id, taskId: comment.task_id, by: req.user.id,
+  });
   res.json({ message: 'Comment deleted' });
 };

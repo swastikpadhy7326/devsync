@@ -1,5 +1,6 @@
 const pool = require('../db');
 const { logActivity } = require('../utils/activity');
+const { emitToProject } = require('../realtime');
 
 const TASK_SELECT = `
   SELECT t.id, t.project_id, t.title, t.description, t.status, t.priority, t.position,
@@ -49,7 +50,9 @@ exports.createTask = async (req, res) => {
     entityType: 'task', entityId: rows[0].id, metadata: { title },
   });
 
-  res.status(201).json({ task: await fetchTask(rows[0].id) });
+  const task = await fetchTask(rows[0].id);
+  emitToProject(req.project.id, 'task:created', { task, by: req.user.id });
+  res.status(201).json({ task });
 };
 
 exports.listTasks = async (req, res) => {
@@ -124,7 +127,9 @@ exports.updateTask = async (req, res) => {
     values
   );
 
-  res.json({ task: await fetchTask(req.task.id) });
+  const task = await fetchTask(req.task.id);
+  emitToProject(req.task.project_id, 'task:updated', { task, by: req.user.id });
+  res.json({ task });
 };
 
 // Moves a task to a column and position, keeping positions 0,1,2... in both columns
@@ -179,7 +184,12 @@ exports.moveTask = async (req, res) => {
     client.release();
   }
 
-  res.json({ task: await fetchTask(task.id) });
+  const moved = await fetchTask(task.id);
+  // Other cards in both columns shift position too, so clients should reload the board
+  emitToProject(task.project_id, 'task:moved', {
+    task: moved, fromStatus: task.status, by: req.user.id,
+  });
+  res.json({ task: moved });
 };
 
 // Owner/admin can delete any task. A member can delete only tasks they created.
@@ -210,5 +220,6 @@ exports.deleteTask = async (req, res) => {
     client.release();
   }
 
+  emitToProject(task.project_id, 'task:deleted', { taskId: task.id, by: req.user.id });
   res.json({ message: 'Task deleted' });
 };
