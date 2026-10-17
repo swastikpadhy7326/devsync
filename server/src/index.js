@@ -1,8 +1,9 @@
-require('dotenv').config();
+require('dotenv').config({ quiet: true });
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const pool = require('./db');
+const authRoutes = require('./routes/auth.routes');
 
 const app = express();
 
@@ -10,7 +11,6 @@ app.use(helmet());
 app.use(cors());
 app.use(express.json());
 
-// Health check: confirms the server and the database both work
 app.get('/api/health', async (req, res) => {
   try {
     const result = await pool.query('SELECT now() AS time');
@@ -19,6 +19,14 @@ app.get('/api/health', async (req, res) => {
     console.error(err);
     res.status(500).json({ status: 'error', message: 'Database connection failed' });
   }
+});
+
+app.use('/api/auth', authRoutes);
+
+// Catches any error thrown inside a route
+app.use((err, req, res, next) => {
+  console.error(err);
+  res.status(500).json({ message: 'Something went wrong' });
 });
 
 const PORT = process.env.PORT || 5000;
