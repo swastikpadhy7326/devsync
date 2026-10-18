@@ -1,167 +1,115 @@
 # DevSync
 
-> A real-time task management platform for developer teams, where members can create projects, assign tasks, and see updates instantly.
+> Real-time task management for developer teams: Kanban boards, roles, comments, notifications and live presence.
 
-***Status:** In development (backend complete: auth, teams, projects, tasks, comments, real-time updates; frontend next)
+**Live demo:** https://devsync-sooty.vercel.app
+**API health check:** https://devsync-api-jt06.onrender.com/api/health
 
----
+> The backend runs on a free instance that sleeps when idle, so the first request can take up to a minute. After that it responds normally.
 
-## Problem
+<!-- After you take screenshots, save them in a docs folder and remove these comment markers:
+![Kanban board](docs/board.png)
+![Task details](docs/task.png)
+-->
 
-Small dev teams and student project groups often track work in chat apps and spreadsheets. Updates get lost, nobody knows who owns what, and the board is never current. DevSync gives a team one shared board where every change shows up live for everyone.
+## Features
 
-## Roles
+- **Authentication:** register and login with bcrypt-hashed passwords, 15-minute JWT access tokens, and rotating refresh tokens that are stored only as hashes.
+- **Teams and roles:** owner, admin and member roles, with invitations through one-time tokens.
+- **Projects and tasks:** priority, due date, assignee, filters and pagination. Archived projects are read-only.
+- **Kanban board:** drag and drop between and within columns. The server keeps card positions consistent inside a database transaction.
+- **Comments and an activity log** for every project.
+- **Live updates with Socket.IO:** task and comment changes appear instantly for everyone on the board, along with a "who is online" list.
+- **Notifications:** saved in the database and pushed live to the right person when they are assigned a task or someone comments on their task.
 
-| Role | Can do |
+## Architecture
+
+```mermaid
+flowchart LR
+  B["Browser: React + Vite"] -->|"REST /api"| A["Express API (Render)"]
+  B <-->|"WebSocket"| S["Socket.IO"]
+  A --- S
+  A -->|"SQL"| D[("PostgreSQL (Neon)")]
+```
+
+## Tech stack
+
+| Layer | Choice |
 |---|---|
-| **Owner** | Create/delete the team, manage all members and roles, everything an Admin can do |
-| **Admin** | Invite/remove members, create projects, assign tasks, everything a Member can do |
-| **Member** | View projects, create tasks, update their own tasks, comment |
+| Frontend | React, Vite, Tailwind CSS, React Router, dnd-kit |
+| Backend | Node.js, Express 5 |
+| Real time | Socket.IO |
+| Database | PostgreSQL (Neon) with plain parameterised SQL |
+| Validation | Zod |
+| Auth | JWT, bcryptjs, refresh token rotation |
+| Hosting | Vercel (frontend), Render (backend), Neon (database) |
 
-## User Stories
+## Design decisions
 
-**Accounts**
-- As a user, I can sign up and log in securely.
-- As a user, I can stay logged in and log out.
+- **Refresh token rotation:** every refresh revokes the old token. Only SHA-256 hashes are stored, so a leaked database cannot be used to log in.
+- **Permissions in middleware:** role checks run before the controllers. A person outside a team gets a 404 instead of a 403, so team ids cannot be probed.
+- **Consistent card order:** moving a card closes the gap in the old column and opens one in the new column inside a single transaction, so positions always stay 0, 1, 2...
+- **Socket security:** the JWT is checked when the socket connects. Joining a project room repeats the same team-membership check as the REST API, and notifications go to a private room per user.
+- **No SQL injection:** all values are parameters. The one dynamic query (task updates) takes its column names from a fixed map, never from user input.
+- **Dates as plain strings:** `DATE` columns are returned as `YYYY-MM-DD`, which avoids timezone shifts.
+- **Notifications never break a request:** a failure while notifying is logged and ignored.
 
-**Teams and projects**
-- As an owner, I can create a team.
-- As an owner or admin, I can invite people to my team by email.
-- As an admin, I can create, rename, and archive projects inside a team.
+## API overview
 
-**Tasks**
-- As a member, I can create a task with a title, description, priority, and due date.
-- As a member, I can assign a task to a teammate.
-- As a member, I can move a task between **To Do**, **In Progress**, and **Done**.
-- As a member, I can filter tasks by status or assignee.
+| Area | Endpoints |
+|---|---|
+| Auth | `POST /api/auth/register`, `login`, `refresh`, `logout`, `GET /api/auth/me` |
+| Teams | `POST/GET /api/teams`, `GET /api/teams/:id`, `POST /api/teams/:id/invitations`, `PATCH/DELETE /api/teams/:id/members/:userId` |
+| Invitations | `POST /api/invitations/accept` |
+| Projects | `POST/GET /api/teams/:id/projects`, `GET/PATCH /api/projects/:id`, `GET /api/projects/:id/board` |
+| Tasks | `POST/GET /api/projects/:id/tasks`, `GET/PATCH/DELETE /api/tasks/:id`, `PATCH /api/tasks/:id/move` |
+| Comments | `POST/GET /api/tasks/:id/comments`, `DELETE /api/comments/:id` |
+| Notifications | `GET /api/notifications`, `PATCH /api/notifications/:id/read`, `POST /api/notifications/read-all` |
 
-**Collaboration**
-- As a member, I can comment on a task.
-- As a member, I see task changes from teammates instantly, without refreshing.
-- As a member, I can see who is currently online in a project.
-- As a user, I get a notification when I'm assigned a task or mentioned.
-- As a member, I can view an activity feed of what changed in a project.
+## Run it locally
 
-## Scope
-
-### MVP (must build)
-- [ ] Authentication (JWT) and role-based access
-- [ ] Teams, invites, and members
-- [ ] Projects
-- [ ] Tasks with CRUD, assignment, filters, and pagination
-- [ ] Kanban board with drag and drop
-- [ ] Comments
-- [ ] Real-time updates (WebSockets)
-- [ ] Notifications and activity feed
-- [ ] Tests, CI, Docker, and deployment
-
-### Later (only if time remains)
-- [ ] File attachments
-- [ ] Task labels and tags
-- [ ] Global search
-- [ ] Email notifications
-- [ ] Dark mode
-- [ ] GitHub integration (link commits and PRs to tasks)
-
-### Out of scope
-Video calls, built-in code editor, billing, mobile app.
-
-## Screens (rough sketches)
-
-**1. Login / Signup**
+1. Clone the repo and create a PostgreSQL database (a free Neon project works).
+2. Run `server/db/schema.sql` against the database.
+3. Create `server/.env`:
 ```
-+---------------------------+
-|          DevSync          |
-|  [ Email              ]   |
-|  [ Password           ]   |
-|  [      Log in        ]   |
-|  No account? Sign up      |
-+---------------------------+
+   PORT=5000
+   DATABASE_URL=your-postgres-connection-string
+   JWT_SECRET=a-long-random-string
 ```
+4. Start the backend:
+```bash
+   cd server
+   npm install
+   npm run dev
+```
+5. Start the frontend in a second terminal:
+```bash
+   cd client
+   npm install
+   npm run dev
+```
+6. Open http://localhost:5173. Vite proxies `/api` and `/socket.io` to the backend.
 
-**2. Dashboard**
-```
-+------------------------------------------+
-| DevSync        [Notifications]  [Profile]|
-|------------------------------------------|
-| Your teams                  [+ New team] |
-|  > Team Alpha  (3 projects)              |
-|  > Team Beta   (1 project)               |
-|                                          |
-| Recent activity                          |
-|  - Riya moved "Login API" to Done        |
-+------------------------------------------+
-```
+### Production environment variables
 
-**3. Project board (Kanban)**
-```
-+------------------------------------------------------+
-| Project: Website Redesign     Online: Riya, Aman     |
-| [Filter: status v] [Filter: assignee v] [+ New task] |
-|------------------------------------------------------|
-|  TO DO          |  IN PROGRESS    |  DONE            |
-|  [Task card]    |  [Task card]    |  [Task card]     |
-|  [Task card]    |                 |  [Task card]     |
-+------------------------------------------------------+
-```
-
-**4. Task detail**
-```
-+------------------------------------------+
-| Task: Build login API          [Priority]|
-| Assignee: Aman    Due: 24 Oct    Status  |
-|------------------------------------------|
-| Description ...                          |
-|------------------------------------------|
-| Comments                                 |
-|  Riya: Please add rate limiting          |
-|  [ Write a comment...            ] [Send]|
-+------------------------------------------+
-```
-
-## Tech Stack
-
-| Layer | Choice | Why |
+| Where | Variable | Purpose |
 |---|---|---|
-| Frontend | React, Tailwind, React Query | Fast UI, simple API caching |
-| Backend | Node.js, Express | Large ecosystem, good for WebSockets |
-| Database | PostgreSQL (with Prisma) | Relational data fits teams, projects, tasks |
-| Cache / pub-sub | Redis | Caching and scaling real-time across servers |
-| Real-time | Socket.IO | Rooms per project, easy reconnects |
-| Auth | JWT (access + refresh tokens), bcrypt | Standard and stateless |
-| Testing | Jest, Supertest | API and integration tests |
-| DevOps | Docker Compose, GitHub Actions | One-command setup, automated tests |
-| Hosting | Vercel (frontend), Render/Railway (backend), Neon (DB) | Free tiers |
-
-## Planned Data Model
-
-`users` , `teams` , `team_members` (role) , `projects` , `tasks` , `comments` , `notifications` , `activity_logs`
+| Backend | `DATABASE_URL` | PostgreSQL connection string |
+| Backend | `JWT_SECRET` | Secret used to sign access tokens |
+| Backend | `CLIENT_ORIGIN` | Frontend address allowed by CORS and Socket.IO |
+| Frontend | `VITE_API_URL` | Backend address, with no trailing slash |
 
 ## Roadmap
 
-| Week | Goal |
-|---|---|
-| 1 | Schema design, project setup, auth and roles |
-| 2 | Core REST API (teams, projects, tasks), Swagger docs |
-| 3 | Frontend: dashboard, Kanban board, drag and drop |
-| 4 | Real-time updates, notifications, Redis |
-| 5 | Tests, CI, rate limiting, load testing |
-| 6 | Deployment, architecture diagram, final README |
-
-## Getting Started
-
-_To be filled in once the project is runnable._
-
-```bash
-# Planned
-git clone https://github.com/<your-username>/devsync.git
-cd devsync
-docker compose up
-```
-
-## Design Decisions
-
-_Add notes here as you build: why PostgreSQL, how roles are enforced, how real-time scales with Redis, and what you would change at larger scale._
+- [x] Authentication, teams, roles and invitations
+- [x] Projects, tasks and the Kanban board
+- [x] Comments, activity log and notifications
+- [x] Real-time updates and presence
+- [x] Deployment (Vercel, Render, Neon)
+- [ ] Automated tests (Jest, Supertest) and GitHub Actions CI
+- [ ] Docker Compose for one-command local setup
+- [ ] Redis adapter so Socket.IO can run on several servers
+- [ ] Email delivery for invitations
 
 ## License
 
