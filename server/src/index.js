@@ -5,6 +5,7 @@ const cors = require('cors');
 const helmet = require('helmet');
 const pool = require('./db');
 const { initRealtime } = require('./realtime');
+const { clientOrigins } = require('./config');
 const authRoutes = require('./routes/auth.routes');
 const teamRoutes = require('./routes/team.routes');
 const invitationRoutes = require('./routes/invitation.routes');
@@ -15,7 +16,8 @@ const notificationRoutes = require('./routes/notification.routes');
 const app = express();
 
 app.use(helmet());
-app.use(cors());
+// In production only your frontend may call the API. Locally (no CLIENT_ORIGIN) anything goes.
+app.use(cors({ origin: clientOrigins.length ? clientOrigins : true }));
 app.use(express.json());
 
 app.get('/api/health', async (req, res) => {

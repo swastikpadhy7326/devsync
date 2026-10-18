@@ -1,5 +1,9 @@
+// Empty locally (Vite's proxy handles /api). On Vercel it is the Render URL.
+export const API_URL = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '');
+
 const ACCESS_KEY = 'devsync_access';
 const REFRESH_KEY = 'devsync_refresh';
+const NO_REFRESH = ['/auth/login', '/auth/register', '/auth/refresh', '/auth/logout'];
 
 export const tokens = {
   get access() { return localStorage.getItem(ACCESS_KEY); },
@@ -20,7 +24,7 @@ async function refreshTokens() {
   if (!tokens.refresh) return false;
   // Several requests can fail at once; they all share one refresh call
   if (!refreshing) {
-    refreshing = fetch('/api/auth/refresh', {
+    refreshing = fetch(`${API_URL}/api/auth/refresh`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ refreshToken: tokens.refresh }),
@@ -43,18 +47,18 @@ export class ApiError extends Error {
     this.errors = errors;
   }
 }
-const NO_REFRESH = ['/auth/login', '/auth/register', '/auth/refresh', '/auth/logout'];
+
 async function request(path, options = {}, retry = true) {
   const headers = { 'Content-Type': 'application/json', ...options.headers };
   if (tokens.access) headers.Authorization = `Bearer ${tokens.access}`;
 
-  const res = await fetch(`/api${path}`, {
+  const res = await fetch(`${API_URL}/api${path}`, {
     ...options,
     headers,
     body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
   });
 
-    if (res.status === 401 && retry && tokens.refresh && !NO_REFRESH.includes(path)) {
+  if (res.status === 401 && retry && tokens.refresh && !NO_REFRESH.includes(path)) {
     if (await refreshTokens()) return request(path, options, false);
     tokens.clear();
     window.dispatchEvent(new Event('devsync:logout'));

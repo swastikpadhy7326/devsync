@@ -1,12 +1,15 @@
 import { io } from 'socket.io-client';
-import { api, tokens } from './api';
+import { api, tokens, API_URL } from './api';
 
 let socket = null;
 let authRetries = 0;
 
 export function getSocket() {
   if (!socket) {
-    socket = io({ autoConnect: false, auth: (cb) => cb({ token: tokens.access }) });
+    socket = io(API_URL || undefined, {
+      autoConnect: false,
+      auth: (cb) => cb({ token: tokens.access }),
+    });
 
     socket.on('connect', () => { authRetries = 0; });
 

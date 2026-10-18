@@ -2,6 +2,7 @@ const { Server } = require('socket.io');
 const jwt = require('jsonwebtoken');
 const pool = require('./db');
 const { isUuid } = require('./utils/uuid');
+const { clientOrigins } = require('./config');
 
 let io = null;
 
@@ -40,7 +41,7 @@ function broadcastPresence(projectId) {
 
 function initRealtime(httpServer) {
   io = new Server(httpServer, {
-    cors: { origin: process.env.CLIENT_ORIGIN || '*' },
+    cors: { origin: clientOrigins.length ? clientOrigins : true },
   });
 
   // Runs once per connection: only logged-in users get in
