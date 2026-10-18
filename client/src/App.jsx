@@ -3,6 +3,7 @@ import { useAuth } from './AuthContext';
 import AuthPage from './pages/AuthPage';
 import Dashboard from './pages/Dashboard';
 import TeamPage from './pages/TeamPage';
+import BoardPage from './pages/BoardPage';
 
 function Protected({ children }) {
   const { user, loading } = useAuth();
@@ -23,6 +24,7 @@ export default function App() {
       <Route path="/register" element={<GuestOnly><AuthPage mode="register" /></GuestOnly>} />
       <Route path="/" element={<Protected><Dashboard /></Protected>} />
       <Route path="/teams/:teamId" element={<Protected><TeamPage /></Protected>} />
+      <Route path="/projects/:projectId" element={<Protected><BoardPage /></Protected>} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

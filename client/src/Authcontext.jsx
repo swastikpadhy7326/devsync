@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { api, tokens } from './api';
+import { closeSocket } from './socket';
 
 const AuthContext = createContext(null);
 
@@ -12,12 +13,16 @@ export function AuthProvider({ children }) {
       if (tokens.refresh) await api.post('/auth/logout', { refreshToken: tokens.refresh });
     } catch { /* ignore */ }
     tokens.clear();
+    closeSocket();
     setUser(null);
   }, []);
 
   // On first load: if we have a token, ask the server who we are
   useEffect(() => {
-    const onForcedLogout = () => setUser(null);
+    const onForcedLogout = () => {
+      closeSocket();
+      setUser(null);
+    };
     window.addEventListener('devsync:logout', onForcedLogout);
 
     (async () => {
@@ -37,6 +42,7 @@ export function AuthProvider({ children }) {
 
   const authenticate = async (path, body) => {
     const data = await api.post(path, body);
+    closeSocket();
     tokens.set(data);
     setUser(data.user);
   };

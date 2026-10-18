@@ -43,7 +43,7 @@ export class ApiError extends Error {
     this.errors = errors;
   }
 }
-
+const NO_REFRESH = ['/auth/login', '/auth/register', '/auth/refresh', '/auth/logout'];
 async function request(path, options = {}, retry = true) {
   const headers = { 'Content-Type': 'application/json', ...options.headers };
   if (tokens.access) headers.Authorization = `Bearer ${tokens.access}`;
@@ -54,7 +54,7 @@ async function request(path, options = {}, retry = true) {
     body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
   });
 
-  if (res.status === 401 && retry && tokens.refresh && !path.startsWith('/auth/')) {
+    if (res.status === 401 && retry && tokens.refresh && !NO_REFRESH.includes(path)) {
     if (await refreshTokens()) return request(path, options, false);
     tokens.clear();
     window.dispatchEvent(new Event('devsync:logout'));

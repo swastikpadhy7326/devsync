@@ -103,11 +103,15 @@ export default function TeamPage() {
         ) : (
           <div className="grid gap-4 sm:grid-cols-2">
             {projects.map((p) => (
-              <div key={p.id} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+                              <Link
+                key={p.id}
+                to={`/projects/${p.id}`}
+                className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm hover:border-indigo-400 hover:shadow"
+              >
                 <div className="font-semibold">{p.name}</div>
                 {p.description && <div className="mt-1 text-sm text-slate-500">{p.description}</div>}
                 <div className="mt-2 text-sm text-slate-500">{p.done_count} of {p.task_count} tasks done</div>
-              </div>
+              </Link>
             ))}
           </div>
         )}
