@@ -32,7 +32,7 @@ async function main() {
 
   const events = [
     'presence:update', 'task:created', 'task:updated', 'task:moved',
-    'task:deleted', 'comment:added', 'comment:deleted',
+    'task:deleted', 'comment:added', 'comment:deleted', 'notification:new',
   ];
   for (const event of events) {
     socket.on(event, (payload) => console.log(`[${event}]`, JSON.stringify(payload)));

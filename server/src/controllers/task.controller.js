@@ -1,6 +1,7 @@
 const pool = require('../db');
 const { logActivity } = require('../utils/activity');
 const { emitToProject } = require('../realtime');
+const { notifyTaskAssigned } = require('../utils/notify');
 
 const TASK_SELECT = `
   SELECT t.id, t.project_id, t.title, t.description, t.status, t.priority, t.position,
@@ -52,6 +53,7 @@ exports.createTask = async (req, res) => {
 
   const task = await fetchTask(rows[0].id);
   emitToProject(req.project.id, 'task:created', { task, by: req.user.id });
+  await notifyTaskAssigned({ task, actorId: req.user.id });
   res.status(201).json({ task });
 };
 
@@ -112,6 +114,9 @@ exports.updateTask = async (req, res) => {
     return res.status(400).json({ message: 'Assignee must be a member of the team' });
   }
 
+  // Remember who the task belonged to, so we only notify when the assignee really changes
+  const before = await pool.query('SELECT assignee_id FROM tasks WHERE id = $1', [req.task.id]);
+
   // Column names come from the fixed map above, never from user input
   const sets = [];
   const values = [];
@@ -129,6 +134,9 @@ exports.updateTask = async (req, res) => {
 
   const task = await fetchTask(req.task.id);
   emitToProject(req.task.project_id, 'task:updated', { task, by: req.user.id });
+  if (req.body.assigneeId !== undefined && task.assignee_id !== before.rows[0].assignee_id) {
+    await notifyTaskAssigned({ task, actorId: req.user.id });
+  }
   res.json({ task });
 };
 

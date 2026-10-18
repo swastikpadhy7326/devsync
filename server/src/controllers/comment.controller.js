@@ -2,6 +2,7 @@ const pool = require('../db');
 const { logActivity } = require('../utils/activity');
 const { isUuid } = require('../utils/uuid');
 const { emitToProject } = require('../realtime');
+const { notifyCommentAdded } = require('../utils/notify');
 
 exports.createComment = async (req, res) => {
   if (req.task.is_archived) {
@@ -23,6 +24,7 @@ exports.createComment = async (req, res) => {
 
   const comment = { ...rows[0], user_name: user.rows[0].name };
   emitToProject(req.task.project_id, 'comment:added', { comment, by: req.user.id });
+  await notifyCommentAdded({ taskId: req.task.id, actorId: req.user.id });
   res.status(201).json({ comment });
 };
 
