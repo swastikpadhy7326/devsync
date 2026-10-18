@@ -10,6 +10,7 @@ let io = null;
 const presence = new Map();
 
 const room = (projectId) => `project:${projectId}`;
+const userRoom = (userId) => `user:${userId}`;
 
 function onlineUsers(projectId) {
   const users = presence.get(projectId);
@@ -62,6 +63,9 @@ function initRealtime(httpServer) {
   io.on('connection', (socket) => {
     socket.joinedProjects = new Set();
 
+    // Private room: personal notifications go only here
+    socket.join(userRoom(socket.user.id));
+
     socket.on('project:join', async (projectId, ack) => {
       const reply = typeof ack === 'function' ? ack : () => {};
       try {
@@ -113,4 +117,10 @@ function emitToProject(projectId, event, payload) {
   io.to(room(projectId)).emit(event, payload);
 }
 
-module.exports = { initRealtime, emitToProject };
+// Sends an event only to one user's private room
+function emitToUser(userId, event, payload) {
+  if (!io) return;
+  io.to(userRoom(userId)).emit(event, payload);
+}
+
+module.exports = { initRealtime, emitToProject, emitToUser };
