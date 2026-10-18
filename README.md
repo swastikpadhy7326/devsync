@@ -2,7 +2,7 @@
 
 > A real-time task management platform for developer teams, where members can create projects, assign tasks, and see updates instantly.
 
-**Status:****Status:** In development (backend complete: auth, teams, projects, tasks, comments, real-time updates; frontend next)
+***Status:** In development (backend complete: auth, teams, projects, tasks, comments, real-time updates; frontend next)
 
 ---
 
