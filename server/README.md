@@ -58,6 +58,29 @@ Never commit `.env`. It is already listed in `.gitignore`.
 |---|---|
 | `npm run dev` | Starts the server with nodemon (restarts on every change) |
 | `npm start` | Starts the server with Node (used in production) |
+| `npm test` | Runs the automated tests (see below) |
+
+## Tests
+
+The API has 56 integration tests written with Jest and Supertest. They call the real Express app and a real PostgreSQL database, and cover authentication (including refresh token rotation), team roles and invitations, the Kanban move logic, comments, and notifications.
+
+**The tests wipe the database they run against**, so they must never point at your real data:
+
+1. Create a separate PostgreSQL database (for example a Neon branch called `test`).
+2. Create `server/.env.test`:
+   ```
+   DATABASE_URL=postgresql://user:password@host/dbname?sslmode=verify-full
+   JWT_SECRET=any-test-secret
+   ALLOW_TEST_DB_RESET=yes
+   ```
+3. Run:
+   ```bash
+   npm test
+   ```
+
+Before each run the setup script drops all tables and recreates them from `db/schema.sql`. It refuses to run unless `ALLOW_TEST_DB_RESET=yes` is set, and it refuses to run if the database is the same as the one in `server/.env`.
+
+On every push, GitHub Actions runs the same tests against a temporary PostgreSQL container, and also builds the frontend (see `.github/workflows/ci.yml`).
 
 ## Project structure
 
@@ -67,8 +90,10 @@ server/
 │   └── schema.sql            Database tables, enums and indexes
 ├── scripts/
 │   └── socket-test.js        Command-line listener for live events
+├── tests/                    Jest + Supertest integration tests
 └── src/
-    ├── index.js              Express app and HTTP server
+    ├── app.js                Express app (used by the server and by the tests)
+    ├── index.js              Starts the HTTP server and Socket.IO
     ├── config.js             Reads CLIENT_ORIGIN
     ├── db.js                 PostgreSQL connection pool
     ├── realtime.js           Socket.IO setup, rooms and presence

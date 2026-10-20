@@ -1,5 +1,7 @@
 # DevSync
 
+[![CI](https://github.com/swastikpadhy7326/devsync/actions/workflows/ci.yml/badge.svg)](https://github.com/swastikpadhy7326/devsync/actions/workflows/ci.yml)
+
 > Real-time task management for developer teams: Kanban boards, roles, comments, notifications and live presence.
 
 **Live demo:** https://devsync-sooty.vercel.app
@@ -123,7 +125,7 @@ flowchart LR
 - [x] Comments, activity log and notifications
 - [x] Real-time updates and presence
 - [x] Deployment (Vercel, Render, Neon)
-- [ ] Automated tests (Jest, Supertest) and GitHub Actions CI
+- [x] Automated tests (Jest, Supertest) and GitHub Actions CI
 - [ ] Docker Compose for one-command local setup
 - [ ] Redis adapter so Socket.IO can run on several servers
 - [ ] Email delivery for invitations
