@@ -2,6 +2,7 @@ const crypto = require('crypto');
 const pool = require('../db');
 const { hashToken } = require('../utils/tokens');
 const { isUuid } = require('../utils/uuid');
+const { sendInvitationEmail } = require('../utils/mailer');
 
 // Creates the team and makes the creator its owner, in one transaction
 exports.createTeam = async (req, res) => {
@@ -84,8 +85,28 @@ exports.inviteMember = async (req, res) => {
     [teamId, email, role, hashToken(token), req.user.id, expiresAt]
   );
 
-  // For now the token is returned so you can test. Later you would email it instead.
-  res.status(201).json({ invitation: rows[0], inviteToken: token });
+    // Look up names for the email. A failure here must never block the invitation.
+  let emailSent = false;
+  try {
+    const info = await pool.query(
+      `SELECT t.name AS team_name, u.name AS inviter_name
+       FROM teams t, users u
+       WHERE t.id = $1 AND u.id = $2`,
+      [teamId, req.user.id]
+    );
+    emailSent = await sendInvitationEmail({
+      to: rows[0].email,
+      teamName: info.rows[0] && info.rows[0].team_name,
+      inviterName: info.rows[0] && info.rows[0].inviter_name,
+      role: rows[0].role,
+      token,
+    });
+  } catch (err) {
+    console.error('Invitation email step failed:', err.message);
+  }
+
+  // The token is still returned, so the owner can copy it if the email did not arrive.
+  res.status(201).json({ invitation: rows[0], inviteToken: token, emailSent });
 };
 
 exports.acceptInvitation = async (req, res) => {
