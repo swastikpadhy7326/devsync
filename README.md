@@ -85,6 +85,14 @@ flowchart LR
 | Comments | `POST/GET /api/tasks/:id/comments`, `DELETE /api/comments/:id` |
 | Notifications | `GET /api/notifications`, `PATCH /api/notifications/:id/read`, `POST /api/notifications/read-all` |
 
+## Run with Docker
+The only prerequisite is [Docker Desktop](https://www.docker.com/products/docker-desktop/).
+
+```bash
+git clone https://github.com/swastikpadhy7326/devsync.git
+cd devsync
+docker compose up --build
+```
 ## Run it locally
 
 1. Clone the repo and create a PostgreSQL database (a free Neon project works).
