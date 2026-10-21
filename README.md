@@ -117,6 +117,24 @@ To stop: `docker compose down`. To also wipe the database: `docker compose down 
 
 > The passwords and JWT secret in `docker-compose.yml` are throwaway values for local use only. Never reuse them in production.
 
+### Email invitations
+
+When an owner or admin invites someone, the API saves the invitation and then emails the one-time token through SMTP (Nodemailer). If the email fails, the invitation still exists and the token is still returned to the inviter, so email never blocks the flow.
+
+Email is optional. Without `SMTP_HOST`, nothing is sent. With Docker Compose, [Mailpit](https://mailpit.axllent.org/) catches every email, so you can read them at http://localhost:8025 without a real email account.
+
+| Variable | Purpose |
+|---|---|
+| `SMTP_HOST` | SMTP server (turns email on) |
+| `SMTP_PORT` | SMTP port (default 587) |
+| `SMTP_USER`, `SMTP_PASS` | Login, if the server needs one |
+| `SMTP_SECURE` | `true` for implicit TLS (port 465) |
+| `MAIL_FROM` | Sender, for example `DevSync <no-reply@example.com>` |
+| `APP_URL` | App address shown in the email |
+
+> The live demo does not send emails yet, because no email provider is connected there. Invitations still work through the token.
+
+
 ## Run it locally
 
 1. Clone the repo and create a PostgreSQL database (a free Neon project works).
@@ -160,7 +178,7 @@ To stop: `docker compose down`. To also wipe the database: `docker compose down 
 - [x] Automated tests (Jest, Supertest) and GitHub Actions CI
 - [x] Docker Compose for one-command local setup
 - [x] Redis adapter so Socket.IO can run on several servers
-- [ ] Email delivery for invitations
+- [x] Email delivery for invitations
 
 ## Licensex
 
