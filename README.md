@@ -86,6 +86,7 @@ flowchart LR
 | Notifications | `GET /api/notifications`, `PATCH /api/notifications/:id/read`, `POST /api/notifications/read-all` |
 
 ## Run with Docker
+
 The only prerequisite is [Docker Desktop](https://www.docker.com/products/docker-desktop/).
 
 ```bash
@@ -93,6 +94,29 @@ git clone https://github.com/swastikpadhy7326/devsync.git
 cd devsync
 docker compose up --build
 ```
+
+Then open:
+
+- App: http://localhost:5173
+- API health check: http://localhost:5000/api/health
+
+The database starts empty, so register a new account first. Compose runs `server/db/schema.sql` automatically the first time.
+
+### Two servers with Redis
+
+The Compose file starts **two** API servers (ports 5000 and 5001) that share one PostgreSQL database and one Redis. Each API has its own frontend, so you can test real-time features across servers:
+
+- Window A: http://localhost:5173 (talks to API on port 5000)
+- Window B: http://localhost:5174 (talks to API on port 5001)
+
+Log in as two different users, open the same project in both windows, and drag a card. The change appears in the other window without a refresh, because the Socket.IO Redis adapter relays events between the servers. The online list and notifications work across servers too.
+
+Redis is optional. Without the `REDIS_URL` environment variable, the server runs as a single instance in memory.
+
+To stop: `docker compose down`. To also wipe the database: `docker compose down -v`.
+
+> The passwords and JWT secret in `docker-compose.yml` are throwaway values for local use only. Never reuse them in production.
+
 ## Run it locally
 
 1. Clone the repo and create a PostgreSQL database (a free Neon project works).
@@ -135,9 +159,9 @@ docker compose up --build
 - [x] Deployment (Vercel, Render, Neon)
 - [x] Automated tests (Jest, Supertest) and GitHub Actions CI
 - [x] Docker Compose for one-command local setup
-- [ ] Redis adapter so Socket.IO can run on several servers
+- [x] Redis adapter so Socket.IO can run on several servers
 - [ ] Email delivery for invitations
 
-## License
+## Licensex
 
 MIT
