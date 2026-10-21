@@ -121,10 +121,11 @@ To stop: `docker compose down`. To also wipe the database: `docker compose down 
 
 When an owner or admin invites someone, the API saves the invitation and then emails the one-time token through SMTP (Nodemailer). If the email fails, the invitation still exists and the token is still returned to the inviter, so email never blocks the flow.
 
-Email is optional. Without `SMTP_HOST`, nothing is sent. With Docker Compose, [Mailpit](https://mailpit.axllent.org/) catches every email, so you can read them at http://localhost:8025 without a real email account.
+Email is optional.Without `BREVO_API_KEY` or `SMTP_HOST`, nothing is sent. With Docker Compose, [Mailpit](https://mailpit.axllent.org/) catches every email, so you can read them at http://localhost:8025 without a real email account.
 
 | Variable | Purpose |
 |---|---|
+| `BREVO_API_KEY` | Sends email through Brevo's HTTPS API (used on Render) |
 | `SMTP_HOST` | SMTP server (turns email on) |
 | `SMTP_PORT` | SMTP port (default 587) |
 | `SMTP_USER`, `SMTP_PASS` | Login, if the server needs one |
@@ -132,7 +133,7 @@ Email is optional. Without `SMTP_HOST`, nothing is sent. With Docker Compose, [M
 | `MAIL_FROM` | Sender, for example `DevSync <no-reply@example.com>` |
 | `APP_URL` | App address shown in the email |
 
-> The live demo does not send emails yet, because no email provider is connected there. Invitations still work through the token.
+> On the live demo, emails go out through the Brevo HTTPS API, because Render's free tier blocks SMTP ports. Set `BREVO_API_KEY` to turn it on. The email contains the invitation token. The invited person logs in with the same email address and pastes the token into the accept-invitation box.
 
 
 ## Run it locally
