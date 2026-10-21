@@ -134,7 +134,7 @@ docker compose up --build
 - [x] Real-time updates and presence
 - [x] Deployment (Vercel, Render, Neon)
 - [x] Automated tests (Jest, Supertest) and GitHub Actions CI
-- [ ] Docker Compose for one-command local setup
+- [x] Docker Compose for one-command local setup
 - [ ] Redis adapter so Socket.IO can run on several servers
 - [ ] Email delivery for invitations
 
