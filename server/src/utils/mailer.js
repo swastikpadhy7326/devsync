@@ -55,23 +55,37 @@ async function sendViaBrevo({ from, to, subject, text, html }) {
 const escapeHtml = (s) =>
   String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
-// Never throws: returns true if sent, false if skipped or failed.
-async function sendInvitationEmail({ to, teamName, inviterName, role, token }) {
+// Sends one email through Brevo or SMTP. Never throws: returns true if sent, false if skipped or failed.
+async function deliver({ to, subject, text, html }) {
   const useBrevo = Boolean(process.env.BREVO_API_KEY);
   const smtp = useBrevo ? null : getTransporter();
   if (!useBrevo && !smtp) {
-    console.log('Invitation email skipped: set BREVO_API_KEY or SMTP_HOST');
+    console.log('Email skipped: set BREVO_API_KEY or SMTP_HOST');
     return false;
   }
 
-  const appUrl = process.env.APP_URL || 'http://localhost:5173';
   const from = process.env.MAIL_FROM || 'DevSync <no-reply@devsync.local>';
+  try {
+    if (useBrevo) {
+      await sendViaBrevo({ from, to, subject, text, html });
+    } else {
+      await smtp.sendMail({ from, to, subject, text, html });
+    }
+    return true;
+  } catch (err) {
+    console.error('Email failed:', err.message);
+    return false;
+  }
+}
+
+async function sendInvitationEmail({ to, teamName, inviterName, role, token }) {
+  const appUrl = process.env.APP_URL || 'http://localhost:5173';
   const team = teamName || 'a team';
   const who = inviterName || 'A teammate';
   const subject = `You are invited to ${team} on DevSync`;
   const inviteUrl = `${appUrl.replace(/\/$/, '')}/invite/${token}`;
 
-   const text = [
+  const text = [
     `${who} invited you to join ${team} on DevSync as ${role}.`,
     '',
     `Open this link and log in (or create an account) with this email address (${to}):`,
@@ -90,17 +104,32 @@ async function sendInvitationEmail({ to, teamName, inviterName, role, token }) {
     <p>If the link does not work, paste this token into the accept-invitation box on <a href="${escapeHtml(appUrl)}">${escapeHtml(appUrl)}</a>:</p>
     <p><code>${escapeHtml(token)}</code></p>`;
 
-  try {
-    if (useBrevo) {
-      await sendViaBrevo({ from, to, subject, text, html });
-    } else {
-      await smtp.sendMail({ from, to, subject, text, html });
-    }
-    return true;
-  } catch (err) {
-    console.error('Invitation email failed:', err.message);
-    return false;
-  }
+  return deliver({ to, subject, text, html });
 }
 
-module.exports = { sendInvitationEmail };
+async function sendPasswordResetEmail({ to, name, token }) {
+  const appUrl = (process.env.APP_URL || 'http://localhost:5173').replace(/\/$/, '');
+  const resetUrl = `${appUrl}/reset-password/${token}`;
+  const hello = name ? `Hi ${name},` : 'Hi,';
+  const subject = 'Reset your DevSync password';
+
+  const text = [
+    hello,
+    '',
+    'We received a request to reset your DevSync password. Open this link to choose a new one:',
+    resetUrl,
+    '',
+    'The link expires in 1 hour and can be used once.',
+    'If you did not ask for this, you can ignore this email. Your password will not change.',
+  ].join('\n');
+
+  const html = `
+    <p>${escapeHtml(hello)}</p>
+    <p>We received a request to reset your DevSync password.</p>
+    <p><a href="${escapeHtml(resetUrl)}">Choose a new password</a></p>
+    <p>The link expires in 1 hour and can be used once. If you did not ask for this, you can ignore this email. Your password will not change.</p>`;
+
+  return deliver({ to, subject, text, html });
+}
+
+module.exports = { sendInvitationEmail, sendPasswordResetEmail };

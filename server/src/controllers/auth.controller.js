@@ -1,6 +1,90 @@
 const bcrypt = require('bcryptjs');
 const pool = require('../db');
 const { signAccessToken, generateRefreshToken, hashToken } = require('../utils/tokens');
+const crypto = require('crypto');
+const { sendPasswordResetEmail } = require('../utils/mailer');
+
+// "Forgot password": always gives the same answer, so nobody can find out who has an account.
+exports.forgotPassword = async (req, res) => {
+  const { email } = req.body;
+  const answer = { message: 'If that email has an account, we sent a reset link.' };
+
+  // Answer first, then work in the background, so the response time does not reveal anything
+  res.json(answer);
+
+  try {
+    const { rows } = await pool.query('SELECT id, name, email FROM users WHERE email = $1', [email]);
+    const user = rows[0];
+    if (!user) return;
+
+    // At most one reset email per minute per person (stops inbox flooding)
+    const recent = await pool.query(
+      `SELECT 1 FROM password_resets
+       WHERE user_id = $1 AND created_at > now() - interval '60 seconds'`,
+      [user.id]
+    );
+    if (recent.rowCount > 0) return;
+
+    const token = crypto.randomBytes(32).toString('hex');
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+
+    // A new request cancels older unused links
+    await pool.query(
+      'UPDATE password_resets SET used_at = now() WHERE user_id = $1 AND used_at IS NULL',
+      [user.id]
+    );
+    await pool.query(
+      'INSERT INTO password_resets (user_id, token_hash, expires_at) VALUES ($1, $2, $3)',
+      [user.id, hashToken(token), expiresAt]
+    );
+
+    await sendPasswordResetEmail({ to: user.email, name: user.name, token });
+  } catch (err) {
+    console.error('Forgot password failed:', err.message);
+  }
+};
+
+exports.resetPassword = async (req, res) => {
+  const { token, password } = req.body;
+  const passwordHash = await bcrypt.hash(password, 12);
+
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    const { rows } = await client.query(
+      `SELECT id, user_id FROM password_resets
+       WHERE token_hash = $1 AND used_at IS NULL AND expires_at > now()
+       FOR UPDATE`,
+      [hashToken(token)]
+    );
+
+    if (rows.length === 0) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({ message: 'This reset link is invalid or has expired' });
+    }
+
+    const reset = rows[0];
+    await client.query('UPDATE users SET password_hash = $1, updated_at = now() WHERE id = $2', [
+      passwordHash,
+      reset.user_id,
+    ]);
+    await client.query('UPDATE password_resets SET used_at = now() WHERE id = $1', [reset.id]);
+    // Sign the person out everywhere, in case someone else had the old password
+    await client.query(
+      'UPDATE refresh_tokens SET revoked_at = now() WHERE user_id = $1 AND revoked_at IS NULL',
+      [reset.user_id]
+    );
+
+    await client.query('COMMIT');
+    res.json({ message: 'Password updated. You can log in now.' });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
+};
 
 async function issueTokens(user) {
   const accessToken = signAccessToken(user);
