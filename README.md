@@ -34,6 +34,8 @@
 ## Features
 
 - **Authentication:** register and login with bcrypt-hashed passwords, 15-minute JWT access tokens, and rotating refresh tokens that are stored only as hashes.
+ Forgotten passwords are reset through a one-time link sent by email.
+
 - **Teams and roles:** owner, admin and member roles, with invitations through one-time tokens.
 - **Projects and tasks:** priority, due date, assignee, filters and pagination. Archived projects are read-only.
 - **Kanban board:** drag and drop between and within columns. The server keeps card positions consistent inside a database transaction.
@@ -73,11 +75,13 @@ flowchart LR
 - **Dates as plain strings:** `DATE` columns are returned as `YYYY-MM-DD`, which avoids timezone shifts.
 - **Notifications never break a request:** a failure while notifying is logged and ignored.
 
+- **Password reset:** the request always gives the same answer, so it cannot be used to find out who has an account. Reset tokens are stored only as hashes, expire after one hour and work once. A reset also signs the person out everywhere by revoking their refresh tokens.
+
 ## API overview
 
 | Area | Endpoints |
 |---|---|
-| Auth | `POST /api/auth/register`, `login`, `refresh`, `logout`, `GET /api/auth/me` |
+| Auth | `POST /api/auth/register`, `login`, `refresh`, `logout`, `forgot-password`, `reset-password`, `GET /api/auth/me` |
 | Teams | `POST/GET /api/teams`, `GET /api/teams/:id`, `POST /api/teams/:id/invitations`, `PATCH/DELETE /api/teams/:id/members/:userId` |
 | Invitations | `POST /api/invitations/accept` |
 | Projects | `POST/GET /api/teams/:id/projects`, `GET/PATCH /api/projects/:id`, `GET /api/projects/:id/board` |
@@ -180,6 +184,7 @@ Email is optional.Without `BREVO_API_KEY` or `SMTP_HOST`, nothing is sent. With 
 - [x] Docker Compose for one-command local setup
 - [x] Redis adapter so Socket.IO can run on several servers
 - [x] Email delivery for invitations
+- [x] Forgot and reset password by email
 
 ## Licensex
 
