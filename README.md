@@ -133,7 +133,7 @@ Email is optional.Without `BREVO_API_KEY` or `SMTP_HOST`, nothing is sent. With 
 | `MAIL_FROM` | Sender, for example `DevSync <no-reply@example.com>` |
 | `APP_URL` | App address shown in the email |
 
-> On the live demo, emails go out through the Brevo HTTPS API, because Render's free tier blocks SMTP ports. Set `BREVO_API_KEY` to turn it on. The email contains the invitation token. The invited person logs in with the same email address and pastes the token into the accept-invitation box.
+> On the live demo, emails go out through the Brevo HTTPS API, because Render's free tier blocks SMTP ports. Set `BREVO_API_KEY` to turn it on. The email contains a one-click link (`/invite/<token>`). The invited person logs in or registers with the same email address and joins the team automatically. The token is also in the email, so it can be pasted into the accept-invitation box as a fallback.
 
 
 ## Run it locally
