@@ -4,6 +4,7 @@ import AuthPage from './pages/AuthPage';
 import Dashboard from './pages/Dashboard';
 import TeamPage from './pages/TeamPage';
 import BoardPage from './pages/BoardPage';
+import InvitePage from './pages/InvitePage';
 
 function Protected({ children }) {
   const { user, loading } = useAuth();
@@ -17,12 +18,25 @@ function GuestOnly({ children }) {
   return user ? <Navigate to="/" replace /> : children;
 }
 
+// After login the app goes to "/". If an invitation link was waiting, finish it first.
+function Home() {
+  let pending = null;
+  try {
+    pending = sessionStorage.getItem('devsync_pending_invite');
+  } catch {
+    /* ignore */
+  }
+  if (pending) return <Navigate to={`/invite/${pending}`} replace />;
+  return <Dashboard />;
+}
+
 export default function App() {
   return (
     <Routes>
       <Route path="/login" element={<GuestOnly><AuthPage mode="login" /></GuestOnly>} />
       <Route path="/register" element={<GuestOnly><AuthPage mode="register" /></GuestOnly>} />
-      <Route path="/" element={<Protected><Dashboard /></Protected>} />
+      <Route path="/invite/:token" element={<InvitePage />} />
+      <Route path="/" element={<Protected><Home /></Protected>} />
       <Route path="/teams/:teamId" element={<Protected><TeamPage /></Protected>} />
       <Route path="/projects/:projectId" element={<Protected><BoardPage /></Protected>} />
       <Route path="*" element={<Navigate to="/" replace />} />

@@ -69,26 +69,26 @@ async function sendInvitationEmail({ to, teamName, inviterName, role, token }) {
   const team = teamName || 'a team';
   const who = inviterName || 'A teammate';
   const subject = `You are invited to ${team} on DevSync`;
+  const inviteUrl = `${appUrl.replace(/\/$/, '')}/invite/${token}`;
 
-  const text = [
+   const text = [
     `${who} invited you to join ${team} on DevSync as ${role}.`,
     '',
-    `1. Open ${appUrl} and log in with this email address (${to}).`,
-    '2. Paste this invitation token into the accept-invitation box:',
+    `Open this link and log in (or create an account) with this email address (${to}):`,
+    inviteUrl,
     '',
+    'The link expires in 7 days and can be used once.',
+    '',
+    `If the link does not work, paste this token into the accept-invitation box on ${appUrl}:`,
     token,
-    '',
-    'The token expires in 7 days and can be used once.',
   ].join('\n');
 
   const html = `
     <p><strong>${escapeHtml(who)}</strong> invited you to join <strong>${escapeHtml(team)}</strong> on DevSync as <strong>${escapeHtml(role)}</strong>.</p>
-    <ol>
-      <li>Open <a href="${escapeHtml(appUrl)}">${escapeHtml(appUrl)}</a> and log in with this email address (${escapeHtml(to)}).</li>
-      <li>Paste this invitation token into the accept-invitation box:</li>
-    </ol>
-    <p><code>${escapeHtml(token)}</code></p>
-    <p>The token expires in 7 days and can be used once.</p>`;
+    <p><a href="${escapeHtml(inviteUrl)}">Accept the invitation</a></p>
+    <p>Log in or create an account with this email address (${escapeHtml(to)}). The link expires in 7 days and can be used once.</p>
+    <p>If the link does not work, paste this token into the accept-invitation box on <a href="${escapeHtml(appUrl)}">${escapeHtml(appUrl)}</a>:</p>
+    <p><code>${escapeHtml(token)}</code></p>`;
 
   try {
     if (useBrevo) {
