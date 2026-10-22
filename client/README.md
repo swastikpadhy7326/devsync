@@ -67,7 +67,10 @@ client/
         ├── AuthPage.jsx          Login and register
         ├── Dashboard.jsx         Your teams, create a team, join with a token
         ├── TeamPage.jsx          Projects, members, roles and invitations
-        └── BoardPage.jsx         Kanban board
+        └        ├── BoardPage.jsx         Kanban board
+        ├── InvitePage.jsx        Accepts an emailed invitation
+        ├── ForgotPasswordPage.jsx  Asks for a password reset email
+        └── ResetPasswordPage.jsx   Sets a new password from the emailed link
 ```
 
 ## Pages
@@ -79,8 +82,11 @@ client/
 | `/` | Dashboard | logged-in users |
 | `/teams/:teamId` | Team page | team members |
 | `/projects/:projectId` | Kanban board (`?task=<id>` opens a task) | team members |
+| `/forgot-password` | Forgot password | logged-out users |
+| `/reset-password/:token` | Set a new password | anyone with the emailed link |
+| `/invite/:token` | Accept an invitation (log in or register first) | anyone with the emailed link |
 
-Logged-in users who open `/login` are sent to the dashboard, and logged-out users who open any other page are sent to `/login`.
+Logged-in users who open `/login`, `/register` or `/forgot-password` are sent to the dashboard, and logged-out users who open a team or board page are sent to `/login`. The invitation and reset pages are open to everyone, because people reach them from emails. The invitation page remembers its token while the person logs in or registers, then finishes joining the team.
 
 ## How it works
 
