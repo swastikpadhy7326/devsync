@@ -5,6 +5,8 @@ import Dashboard from './pages/Dashboard';
 import TeamPage from './pages/TeamPage';
 import BoardPage from './pages/BoardPage';
 import InvitePage from './pages/InvitePage';
+import ForgotPasswordPage from './pages/ForgotPasswordPage';
+import ResetPasswordPage from './pages/ResetPasswordPage';
 
 function Protected({ children }) {
   const { user, loading } = useAuth();
@@ -36,6 +38,8 @@ export default function App() {
       <Route path="/login" element={<GuestOnly><AuthPage mode="login" /></GuestOnly>} />
       <Route path="/register" element={<GuestOnly><AuthPage mode="register" /></GuestOnly>} />
       <Route path="/invite/:token" element={<InvitePage />} />
+            <Route path="/forgot-password" element={<GuestOnly><ForgotPasswordPage /></GuestOnly>} />
+      <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
       <Route path="/" element={<Protected><Home /></Protected>} />
       <Route path="/teams/:teamId" element={<Protected><TeamPage /></Protected>} />
       <Route path="/projects/:projectId" element={<Protected><BoardPage /></Protected>} />

@@ -62,6 +62,12 @@ export default function AuthPage({ mode }) {
           {submitting ? 'Please wait...' : isRegister ? 'Sign up' : 'Log in'}
         </button>
 
+        {!isRegister && (
+          <p className="mt-3 text-center text-sm">
+            <Link to="/forgot-password" className="text-indigo-600">Forgot your password?</Link>
+          </p>
+        )}
+
         <p className="mt-4 text-center text-sm text-slate-500">
           {isRegister ? (
             <>Already have an account? <Link to="/login" className="text-indigo-600">Log in</Link></>
