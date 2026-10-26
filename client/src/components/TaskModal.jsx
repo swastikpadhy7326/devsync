@@ -13,6 +13,9 @@ export default function TaskModal({ taskId, members, onClose, onChanged }) {
   const [newComment, setNewComment] = useState('');
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
+    const [aiEnabled, setAiEnabled] = useState(false);
+  const [summary, setSummary] = useState('');
+  const [summarizing, setSummarizing] = useState(false);
 
   const showError = (err) => setError(err.errors?.map((x) => x.message).join('. ') || err.message);
 
@@ -64,6 +67,26 @@ export default function TaskModal({ taskId, members, onClose, onChanged }) {
   }, [onClose]);
 
   const update = (field) => (e) => setForm({ ...form, [field]: e.target.value });
+  useEffect(() => {
+    api.get('/ai/status').then((d) => setAiEnabled(d.enabled)).catch(() => {});
+  }, []);
+
+  const summarize = async () => {
+    setSummarizing(true);
+    setSummary('');
+    setError('');
+    try {
+      const data = await api.post(`/tasks/${taskId}/summary`);
+      setSummary(data.summary);
+    } catch (err) {
+      showError(err);
+    } finally {
+      setSummarizing(false);
+    }
+  };
+
+
+  
 
   const save = async (e) => {
     e.preventDefault();
@@ -172,7 +195,20 @@ export default function TaskModal({ taskId, members, onClose, onChanged }) {
 
         <hr className="my-6 border-slate-200" />
 
-        <h3 className="mb-3 font-semibold">Comments ({comments.length})</h3>
+               <div className="mb-3 flex items-center justify-between">
+          <h3 className="font-semibold">Comments ({comments.length})</h3>
+          {aiEnabled && (
+            <button type="button" onClick={summarize} disabled={summarizing} className="rounded-lg border border-indigo-200 px-3 py-1 text-sm font-medium text-indigo-600 hover:bg-indigo-50 disabled:opacity-60">
+              {summarizing ? 'Summarizing...' : 'Summarize with AI'}
+            </button>
+          )}
+        </div>
+        {summary && (
+          <div className="mb-4 whitespace-pre-wrap rounded-lg bg-indigo-50 px-3 py-2 text-sm text-slate-700">
+            <div className="mb-1 text-xs font-semibold uppercase text-indigo-600">AI summary (can be wrong)</div>
+            {summary}
+          </div>
+        )}
         <div className="mb-4 space-y-3">
           {comments.length === 0 && <p className="text-sm text-slate-500">No comments yet.</p>}
           {comments.map((c) => (
