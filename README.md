@@ -43,6 +43,9 @@
 - **Live updates with Socket.IO:** task and comment changes appear instantly for everyone on the board, along with a "who is online" list.
 - **Notifications:** saved in the database and pushed live to the right person when they are assigned a task or someone comments on their task.
 
+- **AI task summaries (optional):** a "Summarize with AI" button condenses a task and its comments into a summary, decisions and open questions. It is off unless a Gemini key is set on the server, limited to 10 summaries per person per hour, and falls back to a second model when the first is busy.
+
+
 ## Architecture
 
 ```mermaid
@@ -138,6 +141,18 @@ Email is optional.Without `BREVO_API_KEY` or `SMTP_HOST`, nothing is sent. With 
 | `APP_URL` | App address shown in the email |
 
 > On the live demo, emails go out through the Brevo HTTPS API, because Render's free tier blocks SMTP ports. Set `BREVO_API_KEY` to turn it on. The email contains a one-click link (`/invite/<token>`). The invited person logs in or registers with the same email address and joins the team automatically. The token is also in the email, so it can be pasted into the accept-invitation box as a fallback.
+
+### AI task summaries
+
+The summary button calls Google's Gemini API from the server. The key never reaches the browser, and the feature stays hidden unless `GEMINI_API_KEY` is set. Only team members can summarize a task, the same team check as the rest of the API. The prompt tells the model to treat task and comment text as data, not as instructions.
+
+| Variable | Purpose |
+|---|---|
+| `GEMINI_API_KEY` | Turns the feature on |
+| `AI_MODEL` | Main model, for example `gemini-3.1-flash-lite` |
+| `AI_FALLBACK_MODEL` | Backup model used when the main one is busy or slow |
+
+> **Privacy:** when AI is on, the task title, description and comments are sent to Google. On Gemini's free tier, Google's terms may allow it to use that data to improve its products, so do not put private or customer data in a demo with AI enabled.
 
 
 ## Run it locally
