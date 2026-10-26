@@ -155,6 +155,24 @@ export default function ChatPanel({ projectId, archived = false }) {
     }
   };
 
+    // The new tab is opened first, inside the click, so browsers do not block it as a popup
+  const startMeeting = async () => {
+    setError('');
+    const win = window.open('about:blank', '_blank');
+    try {
+      const data = await api.get(`/projects/${projectId}/meeting`);
+      if (win) {
+        win.opener = null;
+        win.location.href = data.url;
+      } else {
+        setError('Your browser blocked the new tab. Allow pop-ups for this site and try again.');
+      }
+    } catch (err) {
+      if (win) win.close();
+      setError(err.message);
+    }
+  };
+  
   const openPanel = () => {
     setPreview(null);
     setOpen(true);
@@ -166,6 +184,9 @@ export default function ChatPanel({ projectId, archived = false }) {
         <div className="mb-3 flex h-96 w-80 flex-col rounded-2xl border border-slate-200 bg-white shadow-xl">
           <div className="flex items-center justify-between border-b border-slate-200 px-4 py-2">
             <h3 className="font-semibold">Project chat</h3>
+                        <button onClick={startMeeting} className="rounded-lg border border-indigo-200 px-2 py-0.5 text-xs font-medium text-indigo-600 hover:bg-indigo-50">
+              Start meeting
+            </button>
             <button onClick={() => setOpen(false)} className="text-sm text-slate-500 hover:text-slate-800">
               Close
             </button>

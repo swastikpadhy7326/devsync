@@ -23,4 +23,5 @@ router.post(
   chat.sendMessage
 );
 
+router.get('/projects/:projectId/meeting', authenticate, requireProjectAccess(), chat.meetingLink);
 module.exports = router;

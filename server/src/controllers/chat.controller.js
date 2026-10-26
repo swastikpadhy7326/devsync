@@ -63,3 +63,14 @@ exports.sendMessage = async (req, res) => {
   emitToProject(req.project.id, 'chat:message', { message });
   res.status(201).json({ message });
 };
+
+// Same room for everyone on the project, but impossible to guess without the server secret
+exports.meetingLink = (req, res) => {
+  const crypto = require('crypto');
+  const room = crypto
+    .createHmac('sha256', process.env.JWT_SECRET)
+    .update(`meeting:${req.project.id}`)
+    .digest('hex')
+    .slice(0, 24);
+  res.json({ url: `https://meet.jit.si/devsync-${room}` });
+};
