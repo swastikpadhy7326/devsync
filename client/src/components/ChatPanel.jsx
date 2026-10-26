@@ -3,6 +3,8 @@ import { api } from '../api';
 import { useAuth } from '../AuthContext';
 import { getSocket } from '../socket';
 
+const EPOCH = '1970-01-01T00:00:00.000Z';
+
 // Puts messages in time order and removes duplicates (a message can arrive by REST and by socket)
 const merge = (current, incoming) => {
   const map = new Map(current.map((m) => [m.id, m]));
@@ -12,22 +14,46 @@ const merge = (current, incoming) => {
 
 export default function ChatPanel({ projectId, archived = false }) {
   const { user } = useAuth();
+  const seenKey = `devsync_chat_seen_${user.id}_${projectId}`;
+
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState([]);
   const [hasMore, setHasMore] = useState(false);
   const [text, setText] = useState('');
   const [error, setError] = useState('');
-  const [unread, setUnread] = useState(0);
   const [sending, setSending] = useState(false);
+  const [lastSeen, setLastSeen] = useState(null);
+  const [preview, setPreview] = useState(null);
+
   const bottomRef = useRef(null);
   const openRef = useRef(false);
+  const previewTimer = useRef(null);
+  const baseTitle = useRef(document.title);
   openRef.current = open;
+
+  const readSeen = () => {
+    try { return localStorage.getItem(seenKey); } catch { return null; }
+  };
+  const saveSeen = (value) => {
+    setLastSeen(value);
+    try { localStorage.setItem(seenKey, value); } catch { /* storage can be blocked */ }
+  };
 
   const loadLatest = async (initial) => {
     try {
       const data = await api.get(`/projects/${projectId}/messages?limit=50`);
       setMessages((cur) => merge(cur, data.messages));
-      if (initial) setHasMore(data.hasMore);
+      if (initial) {
+        setHasMore(data.hasMore);
+        const stored = readSeen();
+        if (stored) {
+          setLastSeen(stored);
+        } else {
+          // First visit: everything already in the chat counts as seen
+          const newest = data.messages[data.messages.length - 1];
+          saveSeen(newest ? newest.created_at : EPOCH);
+        }
+      }
     } catch { /* the panel keeps working with what it has */ }
   };
 
@@ -47,30 +73,64 @@ export default function ChatPanel({ projectId, archived = false }) {
   useEffect(() => {
     setMessages([]);
     setHasMore(false);
-    setUnread(0);
+    setLastSeen(null);
+    setPreview(null);
     loadLatest(true);
   }, [projectId]);
 
-  // Live messages, and a refresh after a reconnect so nothing is missed
+  // Live messages, plus refreshes so a missed event never leaves the chat out of date
   useEffect(() => {
     const socket = getSocket();
+    const refresh = () => loadLatest(false);
+    const onVisible = () => { if (document.visibilityState === 'visible') refresh(); };
     const onMessage = ({ message }) => {
       if (message.project_id !== projectId) return;
       setMessages((cur) => merge(cur, [message]));
-      if (!openRef.current && message.user_id !== user.id) setUnread((n) => n + 1);
+      if (!openRef.current && message.user_id !== user.id) {
+        setPreview(message);
+        clearTimeout(previewTimer.current);
+        previewTimer.current = setTimeout(() => setPreview(null), 6000);
+      }
     };
-    const onConnect = () => loadLatest(false);
+
     socket.on('chat:message', onMessage);
-    socket.on('connect', onConnect);
+    socket.on('connect', refresh);
+    window.addEventListener('focus', refresh);
+    document.addEventListener('visibilitychange', onVisible);
     return () => {
       socket.off('chat:message', onMessage);
-      socket.off('connect', onConnect);
+      socket.off('connect', refresh);
+      window.removeEventListener('focus', refresh);
+      document.removeEventListener('visibilitychange', onVisible);
+      clearTimeout(previewTimer.current);
     };
   }, [projectId, user.id]);
 
+  // Opening the panel refreshes it
   useEffect(() => {
-    if (open) setUnread(0);
+    if (open) loadLatest(false);
   }, [open]);
+
+  // Unread = messages from other people that are newer than the last time this panel was open
+  const unread =
+    lastSeen === null
+      ? 0
+      : messages.filter((m) => m.user_id !== user.id && new Date(m.created_at) > new Date(lastSeen)).length;
+
+  // While the panel is open, everything on screen counts as seen
+  const newestAt = messages.length ? messages[messages.length - 1].created_at : null;
+  useEffect(() => {
+    if (open && newestAt && (lastSeen === null || new Date(newestAt) > new Date(lastSeen))) {
+      saveSeen(newestAt);
+    }
+  }, [open, newestAt]);
+
+  // The browser tab shows the unread count, like "(2) DevSync"
+  useEffect(() => {
+    const base = baseTitle.current;
+    document.title = unread > 0 ? `(${unread}) ${base}` : base;
+    return () => { document.title = base; };
+  }, [unread]);
 
   // Scroll down only when a newer message appears, not when older ones are loaded
   const newestId = messages.length ? messages[messages.length - 1].id : null;
@@ -95,8 +155,13 @@ export default function ChatPanel({ projectId, archived = false }) {
     }
   };
 
+  const openPanel = () => {
+    setPreview(null);
+    setOpen(true);
+  };
+
   return (
-    <div className="fixed bottom-4 right-4 z-30">
+    <div className="fixed bottom-4 right-4 z-30 flex flex-col items-end">
       {open && (
         <div className="mb-3 flex h-96 w-80 flex-col rounded-2xl border border-slate-200 bg-white shadow-xl">
           <div className="flex items-center justify-between border-b border-slate-200 px-4 py-2">
@@ -154,9 +219,19 @@ export default function ChatPanel({ projectId, archived = false }) {
         </div>
       )}
 
+      {!open && preview && (
+        <button
+          onClick={openPanel}
+          className="mb-2 block w-72 rounded-xl border border-slate-200 bg-white px-3 py-2 text-left shadow-lg"
+        >
+          <div className="text-xs font-semibold text-indigo-600">{preview.user_name}</div>
+          <div className="truncate text-sm text-slate-700">{preview.body}</div>
+        </button>
+      )}
+
       <button
-        onClick={() => setOpen((o) => !o)}
-        className="relative ml-auto block rounded-full bg-indigo-600 px-5 py-3 font-medium text-white shadow-lg hover:bg-indigo-700"
+        onClick={() => (open ? setOpen(false) : openPanel())}
+        className="relative block rounded-full bg-indigo-600 px-5 py-3 font-medium text-white shadow-lg hover:bg-indigo-700"
       >
         Chat
         {unread > 0 && (
