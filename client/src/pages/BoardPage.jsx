@@ -9,6 +9,7 @@ import { getSocket } from '../socket';
 import Layout from '../components/Layout';
 import TaskModal from '../components/TaskModal';
 import ChatPanel from '../components/ChatPanel';
+import SummaryPanel from '../components/SummaryPanel';
 
 const COLUMNS = [
   { id: 'todo', title: 'To Do' },
@@ -167,6 +168,7 @@ export default function BoardPage() {
     };
   }, [projectId, scheduleLoad]);
 
+    const [view, setView] = useState('board');
   const allTasks = board ? [...board.todo, ...board.in_progress, ...board.done] : [];
   const findTask = (id) => allTasks.find((t) => t.id === id);
 
@@ -253,6 +255,19 @@ export default function BoardPage() {
         </div>
       </div>
 
+            <div className="mb-4 flex gap-2">
+        {[['board', 'Board'], ['summary', 'Summary']].map(([key, label]) => (
+          <button
+            key={key}
+            onClick={() => setView(key)}
+            className={`rounded-lg px-3 py-1.5 text-sm font-medium ${
+              view === key ? 'bg-indigo-600 text-white' : 'bg-white text-slate-700 hover:bg-slate-100'
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
       {project?.is_archived && (
         <div className="mb-4 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800">
           This project is archived. It is read-only.
@@ -260,6 +275,7 @@ export default function BoardPage() {
       )}
       {error && <div className="mb-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
 
+            <div className={view === 'board' ? '' : 'hidden'}>
       {!board ? (
         !error && <p className="text-slate-500">Loading...</p>
       ) : (
@@ -279,6 +295,8 @@ export default function BoardPage() {
         </DndContext>
       )}
 
+            </div>
+      {view === 'summary' && <SummaryPanel projectId={projectId} members={members} />}
       {openTaskId && (
         <TaskModal taskId={openTaskId} members={members} onClose={closeTask} onChanged={scheduleLoad} />
       )}
