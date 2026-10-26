@@ -46,6 +46,10 @@
 - **AI task summaries (optional):** a "Summarize with AI" button condenses a task and its comments into a summary, decisions and open questions. It is off unless a Gemini key is set on the server, limited to 10 summaries per person per hour, and falls back to a second model when the first is busy.
 - **Project chat:** every project has a live chat panel. Messages are saved, then delivered to everyone on the board through Socket.IO, across servers with the Redis adapter. The panel shows an unread count, a short preview popup and the count in the browser tab title. Archived projects are read-only, and each person is limited to 30 messages per minute.
 
+- **Video meetings:** a "Start meeting" button in the chat opens a private Jitsi Meet room for the project in a new tab. The room name is derived on the server from the project id and a server secret, so only team members can get it. The first person to arrive may have to sign in on meet.jit.si, and the link does not expire.
+
+- **Project summary:** a Summary tab shows work items created, updated, completed and due soon, a status donut, a priority breakdown, work per person and a readable activity feed. It can be filtered by assignee, and the charts are drawn with SVG and CSS, with no chart library.
+
 
 ## Architecture
 
@@ -92,7 +96,8 @@ flowchart LR
 | Projects | `POST/GET /api/teams/:id/projects`, `GET/PATCH /api/projects/:id`, `GET /api/projects/:id/board` |
 | Tasks | `POST/GET /api/projects/:id/tasks`, `GET/PATCH/DELETE /api/tasks/:id`, `PATCH /api/tasks/:id/move` |
 | Comments | `POST/GET /api/tasks/:id/comments`, `DELETE /api/comments/:id` |
-| Chat | `GET/POST /api/projects/:id/messages` (history is paged with `limit` and `before`) |
+| Chat | `GET/POST /api/projects/:id/messages` (history is paged with `limit` and `before`), `GET /api/projects/:id/meeting` |
+| Summary | `GET /api/projects/:id/summary` (optional `?assignee=`) |
 | AI | `GET /api/ai/status`, `POST /api/tasks/:id/summary` |
 | Notifications | `GET /api/notifications`, `PATCH /api/notifications/:id/read`, `POST /api/notifications/read-all` |
 
@@ -206,6 +211,9 @@ The summary button calls Google's Gemini API from the server. The key never reac
 - [x] Forgot and reset password by email
 - [x] AI task summaries (optional, off unless a key is set)
 - [x] Project chat with live messages and unread notifications
+- [x] Private video meeting links (Jitsi)
+- [x] Project Summary tab with charts and activity feed
+- [ ] List and Calendar views
 
 ## Licensex
 
