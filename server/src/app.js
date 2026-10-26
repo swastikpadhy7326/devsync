@@ -11,6 +11,7 @@ const projectRoutes = require('./routes/project.routes');
 const commentRoutes = require('./routes/comment.routes');
 const notificationRoutes = require('./routes/notification.routes');
 const aiRoutes = require('./routes/ai.routes');
+const chatRoutes = require('./routes/chat.routes');
 const app = express();
 
 app.use(helmet());
@@ -35,6 +36,7 @@ app.use('/api/notifications', notificationRoutes);
 app.use('/api', projectRoutes);
 app.use('/api', commentRoutes);
 app.use('/api', aiRoutes);
+app.use('/api', chatRoutes);
 // Catches any error thrown inside a route
 app.use((err, req, res, next) => {
   console.error(err);

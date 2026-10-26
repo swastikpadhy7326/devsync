@@ -8,6 +8,7 @@ import { api } from '../api';
 import { getSocket } from '../socket';
 import Layout from '../components/Layout';
 import TaskModal from '../components/TaskModal';
+import ChatPanel from '../components/ChatPanel';
 
 const COLUMNS = [
   { id: 'todo', title: 'To Do' },
@@ -281,6 +282,7 @@ export default function BoardPage() {
       {openTaskId && (
         <TaskModal taskId={openTaskId} members={members} onClose={closeTask} onChanged={scheduleLoad} />
       )}
+          <ChatPanel projectId={projectId} archived={Boolean(project?.is_archived)} />
     </Layout>
   );
 }

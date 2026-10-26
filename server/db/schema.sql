@@ -110,6 +110,16 @@ CREATE TABLE comments (
 );
 CREATE INDEX idx_comments_task ON comments(task_id, created_at);
 
+-- Project chat: one room per project
+CREATE TABLE chat_messages (
+    id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    project_id UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+    user_id    UUID NOT NULL REFERENCES users(id),
+    body       TEXT NOT NULL CHECK (char_length(body) BETWEEN 1 AND 2000),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX idx_chat_messages_project ON chat_messages(project_id, created_at DESC);
+
 CREATE TABLE notifications (
     id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id    UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
