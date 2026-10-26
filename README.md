@@ -44,6 +44,7 @@
 - **Notifications:** saved in the database and pushed live to the right person when they are assigned a task or someone comments on their task.
 
 - **AI task summaries (optional):** a "Summarize with AI" button condenses a task and its comments into a summary, decisions and open questions. It is off unless a Gemini key is set on the server, limited to 10 summaries per person per hour, and falls back to a second model when the first is busy.
+- **Project chat:** every project has a live chat panel. Messages are saved, then delivered to everyone on the board through Socket.IO, across servers with the Redis adapter. The panel shows an unread count, a short preview popup and the count in the browser tab title. Archived projects are read-only, and each person is limited to 30 messages per minute.
 
 
 ## Architecture
@@ -79,6 +80,7 @@ flowchart LR
 - **Notifications never break a request:** a failure while notifying is logged and ignored.
 
 - **Password reset:** the request always gives the same answer, so it cannot be used to find out who has an account. Reset tokens are stored only as hashes, expire after one hour and work once. A reset also signs the person out everywhere by revoking their refresh tokens.
+- **Chat saves over REST, then broadcasts:** a message goes through the same permission-checked API as everything else and is then pushed to the project room. The chat reloads when the window regains focus or the socket reconnects, so a missed live event never leaves it out of date.
 
 ## API overview
 
@@ -90,6 +92,8 @@ flowchart LR
 | Projects | `POST/GET /api/teams/:id/projects`, `GET/PATCH /api/projects/:id`, `GET /api/projects/:id/board` |
 | Tasks | `POST/GET /api/projects/:id/tasks`, `GET/PATCH/DELETE /api/tasks/:id`, `PATCH /api/tasks/:id/move` |
 | Comments | `POST/GET /api/tasks/:id/comments`, `DELETE /api/comments/:id` |
+| Chat | `GET/POST /api/projects/:id/messages` (history is paged with `limit` and `before`) |
+| AI | `GET /api/ai/status`, `POST /api/tasks/:id/summary` |
 | Notifications | `GET /api/notifications`, `PATCH /api/notifications/:id/read`, `POST /api/notifications/read-all` |
 
 ## Run with Docker
@@ -200,6 +204,8 @@ The summary button calls Google's Gemini API from the server. The key never reac
 - [x] Redis adapter so Socket.IO can run on several servers
 - [x] Email delivery for invitations
 - [x] Forgot and reset password by email
+- [x] AI task summaries (optional, off unless a key is set)
+- [x] Project chat with live messages and unread notifications
 
 ## Licensex
 
