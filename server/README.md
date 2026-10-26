@@ -62,7 +62,7 @@ Never commit `.env`. It is already listed in `.gitignore`.
 
 ## Tests
 
-The API has 76 integration tests written with Jest and Supertest. They call the real Express app and a real PostgreSQL database,and cover authentication (including refresh token rotation and password reset),“and AI summaries”, team roles and invitations, the Kanban move logic, comments, and notifications.
+The API has 90 integration tests written with Jest and Supertest. They call the real Express app and a real PostgreSQL database,and cover authentication (including refresh token rotation and password reset), AI summaries with a stubbed provider and project chat, team roles and invitations, the Kanban move logic, comments, and notifications.
 
 **The tests wipe the database they run against**, so they must never point at your real data:
 
