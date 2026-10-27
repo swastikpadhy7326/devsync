@@ -1,8 +1,7 @@
 import { useMemo, useState } from 'react';
+import { dueOf, filterAndSortTasks, isOverdue, todayKey } from '../lib/tasks';
 
-const STATUS_ORDER = { todo: 0, in_progress: 1, done: 2 };
 const STATUS_LABEL = { todo: 'To Do', in_progress: 'In Progress', done: 'Done' };
-const PRIORITY_ORDER = { low: 0, medium: 1, high: 2 };
 const PRIORITY_STYLE = {
   high: 'bg-red-100 text-red-700',
   medium: 'bg-amber-100 text-amber-700',
@@ -17,28 +16,6 @@ const COLUMNS = [
   { key: 'due', label: 'Due date' },
 ];
 
-// Today as YYYY-MM-DD in the person's own time zone
-function today() {
-  const d = new Date();
-  const pad = (n) => String(n).padStart(2, '0');
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-}
-
-const dueOf = (task) => (task.due_date ? task.due_date.slice(0, 10) : null);
-
-function compare(key, a, b) {
-  switch (key) {
-    case 'status':
-      return STATUS_ORDER[a.status] - STATUS_ORDER[b.status];
-    case 'priority':
-      return PRIORITY_ORDER[a.priority] - PRIORITY_ORDER[b.priority];
-    case 'assignee':
-      return (a.assignee_name || '').localeCompare(b.assignee_name || '');
-    default:
-      return a.title.localeCompare(b.title);
-  }
-}
-
 export default function ListView({ tasks, onOpen }) {
   const [sort, setSort] = useState({ key: 'due', dir: 'asc' });
   const [search, setSearch] = useState('');
@@ -51,35 +28,15 @@ export default function ListView({ tasks, onOpen }) {
     [tasks]
   );
 
-  const rows = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    const filtered = tasks.filter(
-      (t) =>
-        (!q || t.title.toLowerCase().includes(q)) &&
-        (!status || t.status === status) &&
-        (!priority || t.priority === priority) &&
-        (!assignee || (assignee === '__none__' ? !t.assignee_name : t.assignee_name === assignee))
-    );
-    const factor = sort.dir === 'asc' ? 1 : -1;
-
-    return [...filtered].sort((a, b) => {
-      if (sort.key === 'due') {
-        const da = dueOf(a);
-        const db = dueOf(b);
-        // Tasks without a due date always go last
-        if (!da && !db) return 0;
-        if (!da) return 1;
-        if (!db) return -1;
-        return da.localeCompare(db) * factor;
-      }
-      return compare(sort.key, a, b) * factor;
-    });
-  }, [tasks, search, status, priority, assignee, sort]);
+  const rows = useMemo(
+    () => filterAndSortTasks(tasks, { search, status, priority, assignee, sort }),
+    [tasks, search, status, priority, assignee, sort]
+  );
 
   const clickHeader = (key) =>
     setSort((cur) => (cur.key === key ? { key, dir: cur.dir === 'asc' ? 'desc' : 'asc' } : { key, dir: 'asc' }));
 
-  const now = today();
+  const now = todayKey();
   const selectClass = 'rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-sm';
 
   return (
@@ -136,7 +93,7 @@ export default function ListView({ tasks, onOpen }) {
             )}
             {rows.map((t) => {
               const due = dueOf(t);
-              const overdue = due && t.status !== 'done' && due < now;
+              const overdue = isOverdue(t, now);
               return (
                 <tr
                   key={t.id}

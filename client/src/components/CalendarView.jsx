@@ -1,7 +1,5 @@
 import { useMemo, useState } from 'react';
-
-const pad = (n) => String(n).padStart(2, '0');
-const keyOf = (year, month, day) => `${year}-${pad(month + 1)}-${pad(day)}`;
+import { buildMonthCells, groupByDay, isOverdue, keyOf, todayKey } from '../lib/tasks';
 
 const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 const CHIP = {
@@ -13,33 +11,14 @@ const MAX_PER_DAY = 3;
 
 export default function CalendarView({ tasks, onOpen }) {
   const now = new Date();
-  const todayKey = keyOf(now.getFullYear(), now.getMonth(), now.getDate());
+  const today = todayKey(now);
   const [cursor, setCursor] = useState({ year: now.getFullYear(), month: now.getMonth() });
   const [expanded, setExpanded] = useState({});
 
-  // Tasks grouped by their due date (YYYY-MM-DD). Tasks without one go in a separate list.
-  const { byDay, undated } = useMemo(() => {
-    const map = {};
-    const none = [];
-    tasks.forEach((t) => {
-      if (!t.due_date) {
-        none.push(t);
-        return;
-      }
-      const day = t.due_date.slice(0, 10);
-      (map[day] = map[day] || []).push(t);
-    });
-    return { byDay: map, undated: none };
-  }, [tasks]);
+  const { byDay, undated } = useMemo(() => groupByDay(tasks), [tasks]);
 
   const { year, month } = cursor;
-  const firstWeekday = (new Date(year, month, 1).getDay() + 6) % 7; // Monday = 0
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
-  const cells = [];
-  for (let i = 0; i < firstWeekday; i += 1) cells.push(null);
-  for (let d = 1; d <= daysInMonth; d += 1) cells.push(d);
-  while (cells.length % 7 !== 0) cells.push(null);
-
+  const cells = buildMonthCells(year, month);
   const title = new Date(year, month, 1).toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
 
   const move = (delta) => {
@@ -47,9 +26,9 @@ export default function CalendarView({ tasks, onOpen }) {
     setCursor({ year: next.getFullYear(), month: next.getMonth() });
   };
 
-  const chip = (t, dayKey) => {
+  const chip = (t) => {
     const done = t.status === 'done';
-    const overdue = !done && dayKey < todayKey;
+    const overdue = isOverdue(t, today);
     return (
       <button
         key={t.id}
@@ -87,13 +66,13 @@ export default function CalendarView({ tasks, onOpen }) {
             const open = expanded[dayKey];
             const shown = open ? list : list.slice(0, MAX_PER_DAY);
             const hidden = list.length - shown.length;
-            const isToday = dayKey === todayKey;
+            const isToday = dayKey === today;
             return (
               <div key={dayKey} className="min-h-[6rem] space-y-1 bg-white p-1.5">
                 <div className={`text-xs ${isToday ? 'inline-block rounded-full bg-indigo-600 px-1.5 font-bold text-white' : 'text-slate-500'}`}>
                   {day}
                 </div>
-                {shown.map((t) => chip(t, dayKey))}
+                {shown.map((t) => chip(t))}
                 {hidden > 0 && (
                   <button onClick={() => setExpanded({ ...expanded, [dayKey]: true })} className="text-xs text-indigo-600 hover:underline">
                     +{hidden} more
@@ -117,7 +96,7 @@ export default function CalendarView({ tasks, onOpen }) {
         ) : (
           <div className="flex flex-wrap gap-2">
             {undated.map((t) => (
-              <div key={t.id} className="max-w-[16rem]">{chip(t, todayKey)}</div>
+              <div key={t.id} className="max-w-[16rem]">{chip(t)}</div>
             ))}
           </div>
         )}
