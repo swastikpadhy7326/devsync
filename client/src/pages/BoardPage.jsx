@@ -11,6 +11,7 @@ import TaskModal from '../components/TaskModal';
 import ChatPanel from '../components/ChatPanel';
 import SummaryPanel from '../components/SummaryPanel';
 import ListView from '../components/ListView';
+import CalendarView from '../components/CalendarView';
 
 const COLUMNS = [
   { id: 'todo', title: 'To Do' },
@@ -257,7 +258,7 @@ export default function BoardPage() {
       </div>
 
             <div className="mb-4 flex gap-2">
-        {[['board', 'Board'], ['list', 'List'], ['summary', 'Summary']].map(([key, label]) => (
+        {[['board', 'Board'], ['list', 'List'], ['calendar', 'Calendar'], ['summary', 'Summary']].map(([key, label]) => (
           <button
             key={key}
             onClick={() => setView(key)}
@@ -297,6 +298,7 @@ export default function BoardPage() {
       )}
 
             </div>
+                  {view === 'calendar' && board && <CalendarView tasks={allTasks} onOpen={openTask} />}
             {view === 'list' && board && <ListView tasks={allTasks} onOpen={openTask} />}
       {view === 'summary' && <SummaryPanel projectId={projectId} members={members} />}
       {openTaskId && (
