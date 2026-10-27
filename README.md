@@ -50,6 +50,8 @@
 
 - **Project summary:** a Summary tab shows work items created, updated, completed and due soon, a status donut, a priority breakdown, work per person and a readable activity feed. It can be filtered by assignee, and the charts are drawn with SVG and CSS, with no chart library.
 
+- **Board, List and Calendar views:** the same project can be shown as a drag-and-drop Kanban board, as a sortable and filterable table, or as a month calendar placed by due date. Overdue work is marked in red, and every view opens the same task window.
+
 
 ## Architecture
 
@@ -213,7 +215,7 @@ The summary button calls Google's Gemini API from the server. The key never reac
 - [x] Project chat with live messages and unread notifications
 - [x] Private video meeting links (Jitsi)
 - [x] Project Summary tab with charts and activity feed
-- [ ] List and Calendar views
+- [x] List and Calendar views
 
 ## Licensex
 
