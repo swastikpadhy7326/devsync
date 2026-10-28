@@ -4,9 +4,11 @@ const { emitToProject } = require('../realtime');
 const { notifyTaskAssigned } = require('../utils/notify');
 
 const TASK_SELECT = `
-  SELECT t.id, t.project_id, t.title, t.description, t.status, t.priority, t.position,
-         t.due_date, t.created_at, t.updated_at, t.assignee_id, u.name AS assignee_name
+  SELECT t.id, t.project_id, t.title, t.description, t.status, t.priority, t.type, t.position,
+         t.due_date, t.created_at, t.updated_at, t.assignee_id, u.name AS assignee_name,
+         t.number, p.key_prefix || '-' || t.number AS key
   FROM tasks t
+  JOIN projects p ON p.id = t.project_id
   LEFT JOIN users u ON u.id = t.assignee_id`;
 
 async function fetchTask(id) {
@@ -25,7 +27,7 @@ async function isTeamMember(teamId, userId) {
 const archivedResponse = (res) => res.status(400).json({ message: 'This project is archived' });
 
 exports.createTask = async (req, res) => {
-  const { title, description, status, priority, assigneeId, dueDate } = req.body;
+  const { title, description, status, priority, type, assigneeId, dueDate } = req.body;
 
   if (req.project.is_archived) return archivedResponse(res);
   if (assigneeId && !(await isTeamMember(req.project.team_id, assigneeId))) {
@@ -39,10 +41,10 @@ exports.createTask = async (req, res) => {
   );
 
   const { rows } = await pool.query(
-    `INSERT INTO tasks (project_id, title, description, status, priority, assignee_id, created_by, due_date, position)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+    `INSERT INTO tasks (project_id, title, description, status, priority, type, assignee_id, created_by, due_date, position)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
      RETURNING id`,
-    [req.project.id, title, description ?? null, status, priority, assigneeId ?? null,
+    [req.project.id, title, description ?? null, status, priority, type, assigneeId ?? null,
      req.user.id, dueDate ?? null, next.rows[0].next]
   );
 
@@ -103,6 +105,7 @@ const FIELD_MAP = {
   title: 'title',
   description: 'description',
   priority: 'priority',
+  type: 'type',
   assigneeId: 'assignee_id',
   dueDate: 'due_date',
 };

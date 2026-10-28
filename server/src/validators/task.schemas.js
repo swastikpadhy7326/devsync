@@ -2,12 +2,14 @@ const { z } = require('zod');
 
 const status = z.enum(['todo', 'in_progress', 'done']);
 const priority = z.enum(['low', 'medium', 'high']);
+const taskType = z.enum(['task', 'bug', 'story']);
 
 const createTaskSchema = z.object({
   title: z.string().trim().min(1, 'Title is required').max(200),
   description: z.string().trim().max(5000).optional(),
   status: status.default('todo'),
   priority: priority.default('medium'),
+    type: taskType.default('task'),
   assigneeId: z.uuid().nullable().optional(),
   dueDate: z.iso.date().nullable().optional(),
 });
@@ -17,6 +19,7 @@ const updateTaskSchema = z
     title: z.string().trim().min(1).max(200).optional(),
     description: z.string().trim().max(5000).nullable().optional(),
     priority: priority.optional(),
+     type: taskType.optional(),
     assigneeId: z.uuid().nullable().optional(),
     dueDate: z.iso.date().nullable().optional(),
   })
