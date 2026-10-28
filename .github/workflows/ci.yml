@@ -48,7 +48,7 @@ jobs:
       - run: npm test
 
   client-build:
-    name: Client build
+        name: Client tests and build
     runs-on: ubuntu-latest
 
     defaults:
@@ -63,4 +63,5 @@ jobs:
           cache: npm
           cache-dependency-path: client/package-lock.json
       - run: npm ci
+      - run: npm test
       - run: npm run build
