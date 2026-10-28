@@ -207,6 +207,7 @@ The summary button calls Google's Gemini API from the server. The key never reac
 - [x] Real-time updates and presence
 - [x] Deployment (Vercel, Render, Neon)
 - [x] Automated tests (Jest, Supertest) and GitHub Actions CI
+- [x] Frontend tests (Vitest) for the List and Calendar logic, run in CI
 - [x] Docker Compose for one-command local setup
 - [x] Redis adapter so Socket.IO can run on several servers
 - [x] Email delivery for invitations

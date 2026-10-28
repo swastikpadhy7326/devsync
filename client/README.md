@@ -76,6 +76,14 @@ client/
         ├── ForgotPasswordPage.jsx  Asks for a password reset email
         └── ResetPasswordPage.jsx   Sets a new password from the emailed link
 ```
+## Tests
+
+```bash
+npm test
+```
+
+24 Vitest tests cover the rules behind the List and Calendar views, which live in `src/lib/tasks.js`: search, filters, sorting (including "no due date goes last"), grouping by due day, the overdue rule and the Monday-first month grid. CI runs them before the production build. The components themselves, the charts and the chat panel are checked by hand, because the project has no component or end-to-end tests yet.
+
 
 ## Pages
 
