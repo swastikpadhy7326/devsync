@@ -12,6 +12,7 @@ import ChatPanel from '../components/ChatPanel';
 import SummaryPanel from '../components/SummaryPanel';
 import ListView from '../components/ListView';
 import CalendarView from '../components/CalendarView';
+import TypeBadge from '../components/TypeBadge';
 
 const COLUMNS = [
   { id: 'todo', title: 'To Do' },
@@ -28,7 +29,11 @@ const PRIORITY = {
 function CardBody({ task }) {
   return (
     <div className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm">
-      <div className="text-sm font-medium">{task.title}</div>
+      <div className="mb-1 flex items-center gap-2 text-xs text-slate-500">
+        <TypeBadge type={task.type} showLabel={false} />
+        <span>{task.key}</span>
+      </div>
+      <div className="text-sm font-medium">{task.title}</div>  
       <div className="mt-2 flex items-center justify-between gap-2 text-xs">
         <span className={`rounded-full px-2 py-0.5 ${PRIORITY[task.priority]}`}>{task.priority}</span>
         <span className="text-slate-500">

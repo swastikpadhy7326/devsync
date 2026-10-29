@@ -26,6 +26,8 @@ export default function TaskModal({ taskId, members, onClose, onChanged }) {
       setYourRole(data.yourRole);
       setForm({
         title: t.title,
+        key: t.key,
+        type: t.type,
         description: t.description || '',
         priority: t.priority,
         assigneeId: t.assignee_id || '',
@@ -97,6 +99,7 @@ export default function TaskModal({ taskId, members, onClose, onChanged }) {
         title: form.title,
         description: form.description || null,
         priority: form.priority,
+                type: form.type,
         assigneeId: form.assigneeId || null,
         dueDate: form.dueDate || null,
       });
@@ -145,7 +148,10 @@ export default function TaskModal({ taskId, members, onClose, onChanged }) {
     <div className="fixed inset-0 z-40 flex items-start justify-center overflow-y-auto bg-black/40 p-4" onMouseDown={onClose}>
       <div className="my-8 w-full max-w-2xl rounded-2xl bg-white p-6 shadow-xl" onMouseDown={(e) => e.stopPropagation()}>
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-semibold">Task details</h2>
+                   <h2 className="text-lg font-semibold">
+            Task details
+            {form?.key ? <span className="ml-2 text-sm font-normal text-slate-500">{form.key}</span> : null}
+          </h2> 
           <button onClick={onClose} className="text-slate-500 hover:text-slate-800" aria-label="Close">✕</button>
         </div>
 
@@ -163,7 +169,7 @@ export default function TaskModal({ taskId, members, onClose, onChanged }) {
               Description
               <textarea className={`${input} mt-1`} rows={4} value={form.description} onChange={update('description')} />
             </label>
-            <div className="grid gap-4 sm:grid-cols-3">
+            <div className="grid gap-4 sm:grid-cols-4">
               <label className="block text-sm font-medium">
                 Priority
                 <select className={`${input} mt-1`} value={form.priority} onChange={update('priority')}>
@@ -182,6 +188,14 @@ export default function TaskModal({ taskId, members, onClose, onChanged }) {
               <label className="block text-sm font-medium">
                 Due date
                 <input type="date" className={`${input} mt-1`} value={form.dueDate} onChange={update('dueDate')} />
+              </label>
+                            <label className="block text-sm font-medium">
+                Type
+                <select className={`${input} mt-1`} value={form.type} onChange={update('type')}>
+                  <option value="task">Task</option>
+                  <option value="bug">Bug</option>
+                  <option value="story">Story</option>
+                </select>
               </label>
             </div>
             <div className="flex items-center justify-between">
