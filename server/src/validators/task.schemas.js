@@ -20,6 +20,7 @@ const updateTaskSchema = z
     description: z.string().trim().max(5000).nullable().optional(),
     priority: priority.optional(),
      type: taskType.optional(),
+     sprintId: z.uuid().nullable().optional(),
     assigneeId: z.uuid().nullable().optional(),
     dueDate: z.iso.date().nullable().optional(),
   })

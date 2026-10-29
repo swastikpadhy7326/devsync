@@ -6,10 +6,12 @@ const { notifyTaskAssigned } = require('../utils/notify');
 const TASK_SELECT = `
   SELECT t.id, t.project_id, t.title, t.description, t.status, t.priority, t.type, t.position,
          t.due_date, t.created_at, t.updated_at, t.assignee_id, u.name AS assignee_name,
-         t.number, p.key_prefix || '-' || t.number AS key
+         t.number, p.key_prefix || '-' || t.number AS key,
+         t.sprint_id, s.name AS sprint_name
   FROM tasks t
   JOIN projects p ON p.id = t.project_id
-  LEFT JOIN users u ON u.id = t.assignee_id`;
+  LEFT JOIN users u ON u.id = t.assignee_id
+  LEFT JOIN sprints s ON s.id = t.sprint_id`;
 
 async function fetchTask(id) {
   const { rows } = await pool.query(`${TASK_SELECT} WHERE t.id = $1`, [id]);
@@ -22,6 +24,14 @@ async function isTeamMember(teamId, userId) {
     [teamId, userId]
   );
   return rowCount > 0;
+}
+
+// A task can only join a planned or active sprint of its own project
+async function checkSprint(projectId, sprintId) {
+  const { rows } = await pool.query('SELECT status FROM sprints WHERE id = $1 AND project_id = $2', [sprintId, projectId]);
+  if (rows.length === 0) return 'Sprint not found in this project';
+  if (rows[0].status === 'completed') return 'A completed sprint cannot take new tasks';
+  return null;
 }
 
 const archivedResponse = (res) => res.status(400).json({ message: 'This project is archived' });
@@ -106,6 +116,7 @@ const FIELD_MAP = {
   description: 'description',
   priority: 'priority',
   type: 'type',
+  sprintId: 'sprint_id',
   assigneeId: 'assignee_id',
   dueDate: 'due_date',
 };
@@ -116,7 +127,12 @@ exports.updateTask = async (req, res) => {
   if (req.body.assigneeId && !(await isTeamMember(req.task.team_id, req.body.assigneeId))) {
     return res.status(400).json({ message: 'Assignee must be a member of the team' });
   }
-
+  if (req.body.sprintId) {
+    const problem = await checkSprint(req.task.project_id, req.body.sprintId);
+    if (problem) return res.status(400).json({ message: problem });
+  }
+  
+  
   // Remember who the task belonged to, so we only notify when the assignee really changes
   const before = await pool.query('SELECT assignee_id FROM tasks WHERE id = $1', [req.task.id]);
 
