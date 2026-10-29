@@ -23,6 +23,7 @@ async function addTask(owner, project, title, o = {}) {
     dueInDays = null,
     createdDaysAgo = 0,
     updatedDaysAgo = 0,
+    completedDaysAgo = updatedDaysAgo,
   } = o;
   const task = await createTask(owner, project, { title });
   await pool.query(
@@ -30,9 +31,10 @@ async function addTask(owner, project, title, o = {}) {
      SET status = $2, priority = $3, assignee_id = $4,
          due_date = CASE WHEN $5::int IS NULL THEN NULL ELSE CURRENT_DATE + $5::int END,
          created_at = now() - make_interval(days => $6::int),
-         updated_at = now() - make_interval(days => $7::int)
+                 updated_at = now() - make_interval(days => $7::int),
+         completed_at = CASE WHEN $8::int IS NULL THEN NULL ELSE now() - make_interval(days => $8::int) END
      WHERE id = $1`,
-    [task.id, status, priority, assigneeId, dueInDays, createdDaysAgo, updatedDaysAgo]
+       [task.id, status, priority, assigneeId, dueInDays, createdDaysAgo, updatedDaysAgo, status === 'done' ? completedDaysAgo : null]
   );
   return task;
 }

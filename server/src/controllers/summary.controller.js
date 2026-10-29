@@ -45,7 +45,7 @@ exports.getSummary = async (req, res) => {
     pool.query(
       `SELECT
          count(*)::int AS total,
-         count(*) FILTER (WHERE status = 'done' AND updated_at > now() - interval '7 days')::int AS completed,
+                 count(*) FILTER (WHERE completed_at > now() - interval '7 days')::int AS completed,
          count(*) FILTER (WHERE updated_at > now() - interval '7 days')::int AS updated,
          count(*) FILTER (WHERE created_at > now() - interval '7 days')::int AS created,
          count(*) FILTER (WHERE status <> 'done' AND due_date IS NOT NULL
