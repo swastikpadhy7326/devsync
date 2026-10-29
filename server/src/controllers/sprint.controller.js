@@ -20,7 +20,7 @@ exports.listSprints = async (req, res) => {
      ORDER BY CASE s.status WHEN 'active' THEN 0 WHEN 'planned' THEN 1 ELSE 2 END, s.created_at`,
     [req.project.id]
   );
-  res.json({ sprints: rows });
+    res.json({ sprints: rows, yourRole: req.project.role });
 };
 
 exports.createSprint = async (req, res) => {

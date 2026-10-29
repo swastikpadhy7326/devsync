@@ -316,3 +316,14 @@ describe('tasks and sprints', () => {
     expect((await getTask(owner, task.id)).sprint_id).toBeNull();
   });
 });
+
+describe('role in the list', () => {
+  test('the list tells the caller their role', async () => {
+    const { owner, team, project } = await setup();
+    const member = await registerUser('Plain Member');
+    await addMember(team, owner, member);
+
+    expect((await list(owner, project.id)).body.yourRole).toBe('owner');
+    expect((await list(member, project.id)).body.yourRole).toBe('member');
+  });
+});

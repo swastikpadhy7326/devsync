@@ -11,6 +11,7 @@ import TaskModal from '../components/TaskModal';
 import ChatPanel from '../components/ChatPanel';
 import SummaryPanel from '../components/SummaryPanel';
 import ListView from '../components/ListView';
+import BacklogView from '../components/BacklogView';
 import CalendarView from '../components/CalendarView';
 import TypeBadge from '../components/TypeBadge';
 
@@ -152,7 +153,7 @@ export default function BoardPage() {
   // Live updates
   useEffect(() => {
     const socket = getSocket();
-    const events = ['task:created', 'task:updated', 'task:moved', 'task:deleted'];
+    const events = ['task:created', 'task:updated', 'task:moved', 'task:deleted', 'sprint:changed'];
 
     const join = () =>
       socket.emit('project:join', projectId, (res) => {
@@ -263,7 +264,7 @@ export default function BoardPage() {
       </div>
 
             <div className="mb-4 flex gap-2">
-        {[['board', 'Board'], ['list', 'List'], ['calendar', 'Calendar'], ['summary', 'Summary']].map(([key, label]) => (
+        {[['board', 'Board'], ['list', 'List'], ['backlog', 'Backlog'], ['calendar', 'Calendar'], ['summary', 'Summary']].map(([key, label]) => (
           <button
             key={key}
             onClick={() => setView(key)}
@@ -304,6 +305,7 @@ export default function BoardPage() {
 
             </div>
                   {view === 'calendar' && board && <CalendarView tasks={allTasks} onOpen={openTask} />}
+                  {view === 'backlog' && board && <BacklogView projectId={projectId} tasks={allTasks} onOpen={openTask} onChanged={scheduleLoad} archived={Boolean(project?.is_archived)} />}
             {view === 'list' && board && <ListView tasks={allTasks} onOpen={openTask} />}
       {view === 'summary' && <SummaryPanel projectId={projectId} members={members} />}
       {openTaskId && (
