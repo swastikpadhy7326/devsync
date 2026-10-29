@@ -16,9 +16,15 @@ export const isOverdue = (task, today) => {
 
 const STATUS_ORDER = { todo: 0, in_progress: 1, done: 2 };
 const PRIORITY_ORDER = { low: 0, medium: 1, high: 2 };
+const TYPE_ORDER = { task: 0, bug: 1, story: 2 };
 
 function compare(key, a, b) {
   switch (key) {
+    case 'key':
+      // By number, so DEV-10 comes after DEV-2
+      return (a.number || 0) - (b.number || 0);
+    case 'type':
+      return (TYPE_ORDER[a.type] ?? 0) - (TYPE_ORDER[b.type] ?? 0);
     case 'status':
       return STATUS_ORDER[a.status] - STATUS_ORDER[b.status];
     case 'priority':
@@ -31,16 +37,18 @@ function compare(key, a, b) {
 }
 
 // Filters and sorts a copy of the list. assignee '__none__' means "unassigned".
+// The search text matches the title or the key (for example "dev-12").
 export function filterAndSortTasks(
   tasks,
-  { search = '', status = '', priority = '', assignee = '', sort = { key: 'due', dir: 'asc' } } = {}
+  { search = '', status = '', priority = '', type = '', assignee = '', sort = { key: 'due', dir: 'asc' } } = {}
 ) {
   const q = search.trim().toLowerCase();
   const filtered = tasks.filter(
     (t) =>
-      (!q || t.title.toLowerCase().includes(q)) &&
+      (!q || t.title.toLowerCase().includes(q) || (t.key || '').toLowerCase().includes(q)) &&
       (!status || t.status === status) &&
       (!priority || t.priority === priority) &&
+      (!type || t.type === type) &&
       (!assignee || (assignee === '__none__' ? !t.assignee_name : t.assignee_name === assignee))
   );
   const factor = sort.dir === 'asc' ? 1 : -1;

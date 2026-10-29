@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { dueOf, filterAndSortTasks, isOverdue, todayKey } from '../lib/tasks';
+import TypeBadge from './TypeBadge';
 
 const STATUS_LABEL = { todo: 'To Do', in_progress: 'In Progress', done: 'Done' };
 const PRIORITY_STYLE = {
@@ -9,7 +10,9 @@ const PRIORITY_STYLE = {
 };
 
 const COLUMNS = [
+  { key: 'key', label: 'Key' },
   { key: 'title', label: 'Title' },
+  { key: 'type', label: 'Type' },
   { key: 'status', label: 'Status' },
   { key: 'priority', label: 'Priority' },
   { key: 'assignee', label: 'Assignee' },
@@ -21,6 +24,7 @@ export default function ListView({ tasks, onOpen }) {
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('');
   const [priority, setPriority] = useState('');
+  const [type, setType] = useState('');
   const [assignee, setAssignee] = useState('');
 
   const assignees = useMemo(
@@ -29,8 +33,8 @@ export default function ListView({ tasks, onOpen }) {
   );
 
   const rows = useMemo(
-    () => filterAndSortTasks(tasks, { search, status, priority, assignee, sort }),
-    [tasks, search, status, priority, assignee, sort]
+    () => filterAndSortTasks(tasks, { search, status, priority, type, assignee, sort }),
+    [tasks, search, status, priority, type, assignee, sort]
   );
 
   const clickHeader = (key) =>
@@ -44,10 +48,16 @@ export default function ListView({ tasks, onOpen }) {
       <div className="mb-3 flex flex-wrap items-center gap-2">
         <input
           className="min-w-[10rem] flex-1 rounded-lg border border-slate-300 px-3 py-1.5 text-sm outline-none focus:border-indigo-500"
-          placeholder="Search work items..."
+          placeholder="Search by title or key..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
+        <select className={selectClass} value={type} onChange={(e) => setType(e.target.value)}>
+          <option value="">All types</option>
+          <option value="task">Task</option>
+          <option value="bug">Bug</option>
+          <option value="story">Story</option>
+        </select>
         <select className={selectClass} value={status} onChange={(e) => setStatus(e.target.value)}>
           <option value="">All statuses</option>
           <option value="todo">To Do</option>
@@ -70,7 +80,7 @@ export default function ListView({ tasks, onOpen }) {
       </div>
 
       <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
-        <table className="w-full min-w-[40rem] text-left text-sm">
+        <table className="w-full min-w-[48rem] text-left text-sm">
           <thead className="border-b border-slate-200 bg-slate-50 text-xs uppercase text-slate-500">
             <tr>
               {COLUMNS.map((c) => (
@@ -102,7 +112,9 @@ export default function ListView({ tasks, onOpen }) {
                   onKeyDown={(e) => { if (e.key === 'Enter') onOpen(t.id); }}
                   className="cursor-pointer border-b border-slate-100 last:border-0 hover:bg-slate-50 focus:bg-slate-50 focus:outline-none"
                 >
+                  <td className="whitespace-nowrap px-4 py-2 text-slate-500">{t.key}</td>
                   <td className="px-4 py-2 font-medium text-slate-900">{t.title}</td>
+                  <td className="px-4 py-2 text-slate-700"><TypeBadge type={t.type} /></td>
                   <td className="px-4 py-2 text-slate-700">{STATUS_LABEL[t.status] || t.status}</td>
                   <td className="px-4 py-2">
                     <span className={`rounded-full px-2 py-0.5 text-xs ${PRIORITY_STYLE[t.priority] || ''}`}>{t.priority}</span>

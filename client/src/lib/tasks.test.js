@@ -188,3 +188,46 @@ describe('buildMonthCells', () => {
     }
   });
 });
+
+describe('keys and types', () => {
+  const tasks = [
+    task({ title: 'Login crash', key: 'DEV-2', number: 2, type: 'bug' }),
+    task({ title: 'Reset password flow', key: 'DEV-10', number: 10, type: 'story' }),
+    task({ title: 'Write docs', key: 'DEV-1', number: 1, type: 'task' }),
+    task({ title: 'Dark mode', key: 'DEV-3', number: 3, type: 'story' }),
+  ];
+  const byTitle = { key: 'title', dir: 'asc' };
+
+  test('the search also matches the key, ignoring case', () => {
+    expect(titles(filterAndSortTasks(tasks, { search: 'dev-10', sort: byTitle }))).toEqual(['Reset password flow']);
+  });
+
+  test('a short key search matches every key that contains it', () => {
+    expect(titles(filterAndSortTasks(tasks, { search: 'DEV-1', sort: byTitle }))).toEqual([
+      'Reset password flow',
+      'Write docs',
+    ]);
+  });
+
+  test('filters by type, alone and together with other filters', () => {
+    expect(titles(filterAndSortTasks(tasks, { type: 'story', sort: byTitle }))).toEqual(['Dark mode', 'Reset password flow']);
+    expect(titles(filterAndSortTasks(tasks, { type: 'bug', sort: byTitle }))).toEqual(['Login crash']);
+
+    const mixed = [...tasks, task({ title: 'Story that is done', type: 'story', status: 'done', key: 'DEV-4', number: 4 })];
+    expect(titles(filterAndSortTasks(mixed, { type: 'story', status: 'done', sort: byTitle }))).toEqual(['Story that is done']);
+  });
+
+  test('sorts by key in number order, not text order', () => {
+    const asc = filterAndSortTasks(tasks, { sort: { key: 'key', dir: 'asc' } });
+    expect(asc.map((t) => t.key)).toEqual(['DEV-1', 'DEV-2', 'DEV-3', 'DEV-10']);
+    const desc = filterAndSortTasks(tasks, { sort: { key: 'key', dir: 'desc' } });
+    expect(desc.map((t) => t.key)).toEqual(['DEV-10', 'DEV-3', 'DEV-2', 'DEV-1']);
+  });
+
+  test('sorts by type from task to bug to story, keeping the original order inside a type', () => {
+    const asc = filterAndSortTasks(tasks, { sort: { key: 'type', dir: 'asc' } });
+    expect(titles(asc)).toEqual(['Write docs', 'Login crash', 'Reset password flow', 'Dark mode']);
+    const desc = filterAndSortTasks(tasks, { sort: { key: 'type', dir: 'desc' } });
+    expect(titles(desc)).toEqual(['Reset password flow', 'Dark mode', 'Login crash', 'Write docs']);
+  });
+});
