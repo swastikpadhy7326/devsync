@@ -55,7 +55,10 @@ exports.getSummary = async (req, res) => {
          count(*) FILTER (WHERE status = 'done')::int AS done,
          count(*) FILTER (WHERE priority = 'low')::int AS low,
          count(*) FILTER (WHERE priority = 'medium')::int AS medium,
-         count(*) FILTER (WHERE priority = 'high')::int AS high
+                 count(*) FILTER (WHERE priority = 'high')::int AS high,
+         count(*) FILTER (WHERE type = 'task')::int AS type_task,
+         count(*) FILTER (WHERE type = 'bug')::int AS type_bug,
+         count(*) FILTER (WHERE type = 'story')::int AS type_story 
        FROM tasks
        WHERE project_id = $1 ${filter}`,
       params
@@ -90,7 +93,8 @@ exports.getSummary = async (req, res) => {
     total: c.total,
     cards: { completed: c.completed, updated: c.updated, created: c.created, dueSoon: c.due_soon },
     status: { todo: c.todo, in_progress: c.in_progress, done: c.done },
-    priority: { low: c.low, medium: c.medium, high: c.high },
+      priority: { low: c.low, medium: c.medium, high: c.high },
+    types: { task: c.type_task, bug: c.type_bug, story: c.type_story },
     workload: workload.rows,
     unassigned: unassigned.rows[0].n,
     activity: activity.rows.map((r) => ({

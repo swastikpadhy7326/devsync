@@ -180,3 +180,44 @@ describe('activity feed', () => {
     expect(res.body.activity[14].text).toBe('Ada Owner created "Bulk 3"');
   });
 });
+
+describe('work item types', () => {
+  test('an empty project has zero of every type', async () => {
+    const { owner, project } = await setup();
+    const res = await getSummary(owner, project.id);
+
+    expect(res.status).toBe(200);
+    expect(res.body.types).toEqual({ task: 0, bug: 0, story: 0 });
+  });
+
+  test('counts work items by type', async () => {
+    const { owner, project } = await setup();
+    await createTask(owner, project, { title: 'Plain one' });
+    await createTask(owner, project, { title: 'Plain two', type: 'task' });
+    await createTask(owner, project, { title: 'A bug', type: 'bug' });
+    await createTask(owner, project, { title: 'Story 1', type: 'story' });
+    await createTask(owner, project, { title: 'Story 2', type: 'story' });
+    await createTask(owner, project, { title: 'Story 3', type: 'story' });
+
+    const res = await getSummary(owner, project.id);
+    expect(res.body.total).toBe(6);
+    expect(res.body.types).toEqual({ task: 2, bug: 1, story: 3 });
+  });
+
+  test('the assignee filter narrows the type counts too', async () => {
+    const { owner, team, project } = await setup();
+    const member = await registerUser('Member Person');
+    await addMember(team, owner, member);
+
+    await createTask(owner, project, { title: 'Owner task', type: 'task' });
+    await createTask(owner, project, { title: 'Member bug', type: 'bug', assigneeId: member.user.id });
+    await createTask(owner, project, { title: 'Member story', type: 'story', assigneeId: member.user.id });
+
+    const everyone = await getSummary(owner, project.id);
+    expect(everyone.body.types).toEqual({ task: 1, bug: 1, story: 1 });
+
+    const filtered = await getSummary(owner, project.id, `?assignee=${member.user.id}`);
+    expect(filtered.status).toBe(200);
+    expect(filtered.body.types).toEqual({ task: 0, bug: 1, story: 1 });
+  });
+});

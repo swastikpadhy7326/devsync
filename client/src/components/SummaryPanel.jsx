@@ -13,6 +13,13 @@ const PRIORITY = [
   { key: 'low', label: 'Low', color: '#3b82f6' },
 ];
 
+// Same colors as the type badge on the cards
+const TYPES = [
+  { key: 'task', label: 'Task', color: '#3b82f6' },
+  { key: 'bug', label: 'Bug', color: '#ef4444' },
+  { key: 'story', label: 'Story', color: '#10b981' },
+];
+
 function StatCard({ value, label, hint }) {
   return (
     <div className="rounded-xl border border-slate-200 bg-white px-4 py-3">
@@ -97,6 +104,9 @@ export default function SummaryPanel({ projectId, members }) {
   if (!data) return <p className="text-slate-500">Loading...</p>;
 
   const maxPriority = Math.max(data.priority.high, data.priority.medium, data.priority.low);
+  const types = data.types || { task: 0, bug: 0, story: 0 };
+  const maxType = Math.max(types.task, types.bug, types.story);
+  const maxLoad = Math.max(...data.workload.map((x) => x.total), data.unassigned);
 
   return (
     <div className="space-y-4">
@@ -117,7 +127,7 @@ export default function SummaryPanel({ projectId, members }) {
         <button onClick={() => setReloadKey((k) => k + 1)} className="text-sm text-indigo-600 hover:underline">
           Refresh
         </button>
-        <span className="text-xs text-slate-400">The filter changes the cards, status and priority.</span>
+        <span className="text-xs text-slate-400">The filter changes the cards, status, priority and types.</span>
       </div>
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
@@ -152,19 +162,25 @@ export default function SummaryPanel({ projectId, members }) {
         </section>
 
         <section className="rounded-xl border border-slate-200 bg-white p-4">
+          <h3 className="mb-3 font-semibold">Types of work</h3>
+          {data.total === 0 && <p className="text-sm text-slate-500">No work items yet.</p>}
+          {TYPES.map((t) => (
+            <Bar key={t.key} label={t.label} value={types[t.key]} max={maxType} color={t.color} />
+          ))}
+        </section>
+
+        <section className="rounded-xl border border-slate-200 bg-white p-4">
           <h3 className="mb-3 font-semibold">Work per person</h3>
           {data.workload.length === 0 && data.unassigned === 0 && (
             <p className="text-sm text-slate-500">No work items yet.</p>
           )}
           {data.workload.map((w) => (
-            <Bar key={w.user_id} label={`${w.name} (${w.done} of ${w.total} done)`} value={w.total} max={Math.max(...data.workload.map((x) => x.total), data.unassigned)} color="#6366f1" />
+            <Bar key={w.user_id} label={`${w.name} (${w.done} of ${w.total} done)`} value={w.total} max={maxLoad} color="#6366f1" />
           ))}
-          {data.unassigned > 0 && (
-            <Bar label="Unassigned" value={data.unassigned} max={Math.max(...data.workload.map((x) => x.total), data.unassigned)} color="#94a3b8" />
-          )}
+          {data.unassigned > 0 && <Bar label="Unassigned" value={data.unassigned} max={maxLoad} color="#94a3b8" />}
         </section>
 
-        <section className="rounded-xl border border-slate-200 bg-white p-4">
+        <section className="rounded-xl border border-slate-200 bg-white p-4 md:col-span-2">
           <h3 className="mb-3 font-semibold">Recent activity</h3>
           {data.activity.length === 0 && <p className="text-sm text-slate-500">Nothing has happened yet.</p>}
           <ul className="space-y-2">
