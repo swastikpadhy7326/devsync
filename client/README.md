@@ -60,13 +60,16 @@ client/
     ├── AuthContext.jsx       Logged-in user, login, register, logout
     ├── index.css             Tailwind import
     ├── components/
-        │   ├── CalendarView.jsx      Month calendar of tasks by due date
+        │   ├── BacklogView.jsx       Sprints and backlog, with start, complete and move controls
+    │   ├── BurndownChart.jsx     Burndown chart of the active sprint, drawn in SVG
+    │   ├── CalendarView.jsx      Month calendar of tasks by due date
     │   ├── ChatPanel.jsx         Project chat with live messages and unread count
     │   ├── Layout.jsx            Header and page container
     │   ├── ListView.jsx          Sortable and filterable table of tasks
     │   ├── NotificationBell.jsx  Alerts dropdown with live unread count
     │   ├── SummaryPanel.jsx      Project dashboard: counts, charts, workload, activity
-    │   └── TaskModal.jsx         Task editing, comments and the optional AI summary
+    │   ├── TaskModal.jsx         Task editing, comments and the optional AI summary
+    │   └── TypeBadge.jsx         Colored square for task, bug and story
     └── pages/
         ├── AuthPage.jsx          Login and register
         ├── Dashboard.jsx         Your teams, create a team, join with a token
@@ -82,8 +85,7 @@ client/
 npm test
 ```
 
-24 Vitest tests cover the rules behind the List and Calendar views, which live in `src/lib/tasks.js`: search, filters, sorting (including "no due date goes last"), grouping by due day, the overdue rule and the Monday-first month grid. CI runs them before the production build. The components themselves, the charts and the chat panel are checked by hand, because the project has no component or end-to-end tests yet.
-
+45 Vitest tests cover the rules behind the List, Calendar and Backlog views, which live in `src/lib/tasks.js` and `src/lib/sprints.js`: search, filters, sorting (including keys in number order and "no due date goes last"), grouping by due day, the overdue rule, the Monday-first month grid, grouping work into sprints and the backlog, the "move to" choices, and the Board's sprint filter.
 
 ## Pages
 
@@ -93,7 +95,7 @@ npm test
 | `/register` | Register | logged-out users |
 | `/` | Dashboard | logged-in users |
 | `/teams/:teamId` | Team page | team members |
-| `/projects/:projectId` | Board, List, Calendar and Summary tabs plus the chat panel (`?task=<id>` opens a task) | team members |
+| `/projects/:projectId` | Board, Backlog, List, Calendar and Summary tabs plus the chat panel (`?task=<id>` opens a task) | team members |
 | `/forgot-password` | Forgot password | logged-out users |
 | `/reset-password/:token` | Set a new password | anyone with the emailed link |
 | `/invite/:token` | Accept an invitation (log in or register first) | anyone with the emailed link |
@@ -110,7 +112,7 @@ Logged-in users who open `/login`, `/register` or `/forgot-password` are sent to
 
 **Notifications.** `NotificationBell` loads your notifications and listens for `notification:new` to update the count instantly. Clicking one opens the task it belongs to.
 
-**Project views.** `BoardPage` shows the same tasks as a Board, List, Calendar or Summary tab. `ListView` and `CalendarView` use the task list the board already loaded, so switching tabs makes no extra request, while `SummaryPanel` asks `GET /api/projects/:id/summary`. `ChatPanel` loads history over REST, listens for `chat:message`, and keeps its unread count from a stored "last seen" time. The charts are drawn with SVG and CSS, with no chart library.
+**Project views.** `BoardPage` shows the same tasks as a Board, Backlog, List, Calendar or Summary tab. The Board can be limited to the active sprint or the backlog. `ListView`, `CalendarView` and `BacklogView` use the task list the board already loaded, so switching tabs makes no extra request, while `SummaryPanel` asks `GET /api/projects/:id/summary` and `BurndownChart` asks `GET /api/sprints/:id/burndown`. `BacklogView` also reloads when it hears `sprint:changed`. `ChatPanel` loads history over REST, listens for `chat:message`, and keeps its unread count from a stored "last seen" time. The charts are drawn with SVG and CSS, with no chart library.
 
 ## Deployment
 

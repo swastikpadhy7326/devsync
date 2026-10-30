@@ -52,6 +52,11 @@
 
 - **Board, List and Calendar views:** the same project can be shown as a drag-and-drop Kanban board, as a sortable and filterable table, or as a month calendar placed by due date. Overdue work is marked in red, and every view opens the same task window.
 
+- **Issue keys and work item types:** every work item has a type (task, bug or story) and a key such as `DEV-12`, built from the project name and a number that never repeats, even after a delete. Cards, the List table, the task window and a "Types of work" card on the Summary tab all show them.
+- **Backlog and sprints:** work without a sprint is the backlog. Owners and admins create, start and complete sprints, and only one sprint per project can be active. Completing a sprint keeps its finished work and sends the rest back to the backlog. The Board can show everything, only the active sprint, or only the backlog, and any member can move work between sprints.
+
+- **Sprint burndown:** the active sprint shows the work items still open at the end of each day against an ideal line, using the exact completion time of each item. It is approximate by design: there is no history of when an item joined the sprint, a reopened item forgets its old completion, and days are counted in UTC.
+
 
 ## Architecture
 
@@ -88,6 +93,8 @@ flowchart LR
 - **Password reset:** the request always gives the same answer, so it cannot be used to find out who has an account. Reset tokens are stored only as hashes, expire after one hour and work once. A reset also signs the person out everywhere by revoking their refresh tokens.
 - **Chat saves over REST, then broadcasts:** a message goes through the same permission-checked API as everything else and is then pushed to the project room. The chat reloads when the window regains focus or the socket reconnects, so a missed live event never leaves it out of date.
 
+- **Rules the database enforces:** issue numbers come from a trigger that locks the project row, so two items created at the same moment never share a number. The completion time is stamped by a trigger when an item enters Done and cleared when it leaves, so editing a finished item does not change it. A partial unique index allows only one active sprint per project, even if two requests arrive together.
+
 ## API overview
 
 | Area | Endpoints |
@@ -100,6 +107,7 @@ flowchart LR
 | Comments | `POST/GET /api/tasks/:id/comments`, `DELETE /api/comments/:id` |
 | Chat | `GET/POST /api/projects/:id/messages` (history is paged with `limit` and `before`), `GET /api/projects/:id/meeting` |
 | Summary | `GET /api/projects/:id/summary` (optional `?assignee=`) |
+| Sprints | `GET/POST /api/projects/:id/sprints`, `PATCH/DELETE /api/sprints/:id`, `POST /api/sprints/:id/start`, `POST /api/sprints/:id/complete`, `GET /api/sprints/:id/burndown` |
 | AI | `GET /api/ai/status`, `POST /api/tasks/:id/summary` |
 | Notifications | `GET /api/notifications`, `PATCH /api/notifications/:id/read`, `POST /api/notifications/read-all` |
 
@@ -190,6 +198,21 @@ The summary button calls Google's Gemini API from the server. The key never reac
    ```
 6. Open http://localhost:5173. Vite proxies `/api` and `/socket.io` to the backend.
 
+### Upgrading an existing database
+
+`server/db/schema.sql` builds a new database from scratch and already contains everything. A database that was created earlier needs the changes below, applied once each, in this order. Each script prints the target host first, and the newer ones change nothing until you add `--yes`.
+
+```bash
+cd server
+node scripts/add-password-resets.js .env
+node scripts/add-chat-messages.js .env
+node scripts/add-task-types-and-keys.js .env --yes
+node scripts/apply-sql.js db/task-completed-at.sql .env --yes
+node scripts/apply-sql.js db/sprints.sql .env --yes
+```
+
+Apply the migration to the database before you deploy the code that needs it.
+
 ### Production environment variables
 
 | Where | Variable | Purpose |
@@ -217,6 +240,10 @@ The summary button calls Google's Gemini API from the server. The key never reac
 - [x] Private video meeting links (Jitsi)
 - [x] Project Summary tab with charts and activity feed
 - [x] List and Calendar views
+- [x] Issue keys, work item types and exact completion dates
+- [x] Backlog, sprints and a sprint burndown chart
+- [ ] Ideas for later: a timeline view, story points and saved filters
+
 
 ## Licensex
 
