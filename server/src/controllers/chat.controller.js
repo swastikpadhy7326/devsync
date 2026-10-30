@@ -18,7 +18,8 @@ function allow(userId) {
   return true;
 }
 
-// Newest messages first from the database, returned oldest first for display
+// Newest messages first from the database, returned oldest first for display.
+// A message that carries a file has attachment_id, attachment_name, attachment_type and attachment_size.
 exports.listMessages = async (req, res) => {
   const { limit, before } = req.validatedQuery;
 
@@ -30,9 +31,12 @@ exports.listMessages = async (req, res) => {
   }
 
   const { rows } = await pool.query(
-    `SELECT m.id, m.project_id, m.user_id, u.name AS user_name, m.body, m.created_at
+    `SELECT m.id, m.project_id, m.user_id, u.name AS user_name, m.body, m.created_at,
+            a.id AS attachment_id, a.filename AS attachment_name,
+            a.content_type AS attachment_type, a.size_bytes AS attachment_size
      FROM chat_messages m
      JOIN users u ON u.id = m.user_id
+     LEFT JOIN attachments a ON a.message_id = m.id
      WHERE ${where}
      ORDER BY m.created_at DESC
      LIMIT $2`,
