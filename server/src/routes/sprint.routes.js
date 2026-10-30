@@ -12,6 +12,7 @@ router.get('/projects/:projectId/sprints', authenticate, requireProjectAccess(),
 router.post('/projects/:projectId/sprints', authenticate, requireProjectAccess('owner', 'admin'), validate(createSprintSchema), sprints.createSprint);
 
 router.patch('/sprints/:sprintId', authenticate, requireSprintAccess('owner', 'admin'), validate(updateSprintSchema), sprints.updateSprint);
+router.get('/sprints/:sprintId/burndown', authenticate, requireSprintAccess(), sprints.getBurndown);
 router.post('/sprints/:sprintId/start', authenticate, requireSprintAccess('owner', 'admin'), sprints.startSprint);
 router.post('/sprints/:sprintId/complete', authenticate, requireSprintAccess('owner', 'admin'), sprints.completeSprint);
 router.delete('/sprints/:sprintId', authenticate, requireSprintAccess('owner', 'admin'), sprints.deleteSprint);

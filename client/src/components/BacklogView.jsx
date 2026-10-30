@@ -3,6 +3,7 @@ import { api } from '../api';
 import { getSocket } from '../socket';
 import { dateRange, groupBySprint, moveTargets, sprintCounts } from '../lib/sprints';
 import TypeBadge from './TypeBadge';
+import BurndownChart from './BurndownChart';
 
 const STATUS_LABEL = { todo: 'To Do', in_progress: 'In Progress', done: 'Done' };
 const SPRINT_BADGE = {
@@ -175,6 +176,9 @@ export default function BacklogView({ projectId, tasks, onOpen, onChanged, archi
                 )}
               </div>
             </div>
+                    {s.status === 'active' && (
+              <BurndownChart sprintId={s.id} signature={list.map((t) => `${t.id}:${t.status}`).join(',')} />
+            )}
             {s.goal && <p className="border-b border-slate-100 px-3 py-1.5 text-xs text-slate-600">Goal: {s.goal}</p>}
             {list.length === 0 ? (
               <p className="px-3 py-3 text-sm text-slate-500">No work items in this sprint. Use "Move to..." on a backlog item.</p>

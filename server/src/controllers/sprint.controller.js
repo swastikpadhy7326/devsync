@@ -148,3 +148,39 @@ exports.deleteSprint = async (req, res) => {
   changed(s.project_id, s.id);
   res.json({ message: 'Sprint deleted' });
 };
+
+// Work still open at the end of each day of the active sprint, against an ideal line
+exports.getBurndown = async (req, res) => {
+  const { buildBurndown } = require('../utils/burndown');
+  const s = req.sprint;
+  if (s.status === 'planned') return res.status(400).json({ message: 'Start the sprint to see its burndown' });
+  if (s.status === 'completed') return res.status(400).json({ message: 'The burndown is shown for the active sprint only' });
+
+  const info = await pool.query(
+    `SELECT start_date::text AS start_date, end_date::text AS end_date,
+            (now() AT TIME ZONE 'UTC')::date::text AS today
+     FROM sprints WHERE id = $1`,
+    [s.id]
+  );
+  const tasks = await pool.query(
+    `SELECT count(*)::int AS total,
+            COALESCE(array_agg(to_char(completed_at AT TIME ZONE 'UTC', 'YYYY-MM-DD'))
+                     FILTER (WHERE status = 'done' AND completed_at IS NOT NULL), ARRAY[]::text[]) AS completed_days
+     FROM tasks WHERE sprint_id = $1`,
+    [s.id]
+  );
+
+  const { end_date: endDate, today } = info.rows[0];
+  const startDate = info.rows[0].start_date || today;
+  const { total, completed_days: completedDays } = tasks.rows[0];
+
+  res.json({
+    sprintId: s.id,
+    name: s.name,
+    startDate,
+    endDate,
+    today,
+    total,
+    ...buildBurndown({ start: startDate, end: endDate, today, total, completedDays }),
+  });
+};
