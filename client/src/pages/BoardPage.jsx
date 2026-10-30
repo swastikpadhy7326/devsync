@@ -12,6 +12,7 @@ import ChatPanel from '../components/ChatPanel';
 import SummaryPanel from '../components/SummaryPanel';
 import ListView from '../components/ListView';
 import BacklogView from '../components/BacklogView';
+import { boardFilter } from '../lib/sprints';
 import CalendarView from '../components/CalendarView';
 import TypeBadge from '../components/TypeBadge';
 
@@ -33,6 +34,9 @@ function CardBody({ task }) {
       <div className="mb-1 flex items-center gap-2 text-xs text-slate-500">
         <TypeBadge type={task.type} showLabel={false} />
         <span>{task.key}</span>
+                {task.sprint_name && (
+          <span className="ml-auto max-w-[8rem] truncate rounded bg-slate-100 px-1.5 py-0.5 text-slate-600">{task.sprint_name}</span>
+        )}
       </div>
       <div className="text-sm font-medium">{task.title}</div>  
       <div className="mt-2 flex items-center justify-between gap-2 text-xs">
@@ -177,6 +181,7 @@ export default function BoardPage() {
   }, [projectId, scheduleLoad]);
 
     const [view, setView] = useState('board');
+    const [sprintMode, setSprintMode] = useState('all');
   const allTasks = board ? [...board.todo, ...board.in_progress, ...board.done] : [];
   const findTask = (id) => allTasks.find((t) => t.id === id);
 
@@ -284,6 +289,24 @@ export default function BoardPage() {
       {error && <div className="mb-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
 
             <div className={view === 'board' ? '' : 'hidden'}>
+                    <div className="mb-3 flex items-center gap-2 text-sm text-slate-600">
+          <label>
+            Show{' '}
+            <select
+              value={sprintMode}
+              onChange={(e) => setSprintMode(e.target.value)}
+              className="ml-1 rounded-lg border border-slate-300 bg-white px-2 py-1 text-sm"
+            >
+              <option value="all">All work</option>
+              <option value="active">Active sprint</option>
+              <option value="backlog">Backlog (no sprint)</option>
+            </select>
+          </label>
+          {sprintMode === 'active' && board && boardFilter(allTasks, 'active').length === 0 && (
+            <span className="text-xs text-slate-500">No active sprint, or it has no work items yet.</span>
+          )}
+        </div>  
+            
       {!board ? (
         !error && <p className="text-slate-500">Loading...</p>
       ) : (
@@ -296,7 +319,7 @@ export default function BoardPage() {
         >
           <div className="grid gap-4 md:grid-cols-3">
             {COLUMNS.map((c) => (
-              <Column key={c.id} column={c} tasks={board[c.id]} onOpen={openTask} onAdd={addTask} />
+              <Column key={c.id} column={c} tasks={boardFilter(board[c.id], sprintMode)} onOpen={openTask} onAdd={addTask} />
             ))}
           </div>
           <DragOverlay>{activeTask ? <CardBody task={activeTask} /> : null}</DragOverlay>

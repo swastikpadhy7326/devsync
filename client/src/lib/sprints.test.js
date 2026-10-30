@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest';
-import { dateRange, groupBySprint, moveTargets, sprintCounts } from './sprints';
+import { boardFilter, dateRange, groupBySprint, moveTargets, sprintCounts } from './sprints';
 
 const task = (over) => ({ id: over.title, title: 'Untitled', status: 'todo', number: 1, sprint_id: null, ...over });
 const keys = (list) => list.map((t) => t.title);
@@ -86,5 +86,33 @@ describe('dateRange', () => {
 
   test('cuts full timestamps down to the date', () => {
     expect(dateRange('2026-11-02T00:00:00.000Z', '2026-11-15T00:00:00.000Z')).toBe('2026-11-02 to 2026-11-15');
+  });
+});
+
+describe('boardFilter', () => {
+  const tasks = [
+    task({ title: 'No sprint' }),
+    task({ title: 'In the active sprint', sprint_id: 's1', sprint_status: 'active' }),
+    task({ title: 'In a planned sprint', sprint_id: 's2', sprint_status: 'planned' }),
+    task({ title: 'In a finished sprint', sprint_id: 's3', sprint_status: 'completed' }),
+  ];
+
+  test('"all" shows everything', () => {
+    expect(keys(boardFilter(tasks, 'all'))).toEqual(keys(tasks));
+  });
+
+  test('"active" shows only work in the active sprint', () => {
+    expect(keys(boardFilter(tasks, 'active'))).toEqual(['In the active sprint']);
+  });
+
+  test('"backlog" shows only work without a sprint', () => {
+    expect(keys(boardFilter(tasks, 'backlog'))).toEqual(['No sprint']);
+  });
+
+  test('an unknown mode shows everything, and the list is never changed', () => {
+    const before = keys(tasks);
+    expect(keys(boardFilter(tasks, 'something else'))).toEqual(before);
+    boardFilter(tasks, 'active');
+    expect(keys(tasks)).toEqual(before);
   });
 });

@@ -28,6 +28,7 @@ export default function TaskModal({ taskId, members, onClose, onChanged }) {
         title: t.title,
         key: t.key,
         type: t.type,
+        sprintName: t.sprint_name,
         description: t.description || '',
         priority: t.priority,
         assigneeId: t.assignee_id || '',
@@ -150,7 +151,7 @@ export default function TaskModal({ taskId, members, onClose, onChanged }) {
         <div className="mb-4 flex items-center justify-between">
                    <h2 className="text-lg font-semibold">
             Task details
-            {form?.key ? <span className="ml-2 text-sm font-normal text-slate-500">{form.key}</span> : null}
+                        {form?.key ? <span className="ml-2 text-sm font-normal text-slate-500">{form.key}{form.sprintName ? ` · ${form.sprintName}` : ''}</span> : null}
           </h2> 
           <button onClick={onClose} className="text-slate-500 hover:text-slate-800" aria-label="Close">✕</button>
         </div>

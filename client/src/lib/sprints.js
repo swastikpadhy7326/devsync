@@ -38,3 +38,10 @@ export function dateRange(start, end) {
   if (e) return `until ${e}`;
   return 'no dates';
 }
+
+// Which work items the Board shows: everything, only the active sprint, or only the backlog
+export function boardFilter(tasks, mode) {
+  if (mode === 'active') return tasks.filter((t) => t.sprint_status === 'active');
+  if (mode === 'backlog') return tasks.filter((t) => !t.sprint_id);
+  return tasks;
+}

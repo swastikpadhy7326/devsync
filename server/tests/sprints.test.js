@@ -327,3 +327,20 @@ describe('role in the list', () => {
     expect((await list(member, project.id)).body.yourRole).toBe('member');
   });
 });
+
+describe('sprint status on tasks', () => {
+  test('a task carries the status of its sprint, and null in the backlog', async () => {
+    const { owner, project } = await setup();
+    const sprint = await newSprint(owner, project.id, 'Sprint 1');
+    const task = await createTask(owner, project, { title: 'Tracked' });
+
+    expect((await getTask(owner, task.id)).sprint_status).toBeNull();
+
+    await assign(owner, task.id, sprint.id);
+    expect((await getTask(owner, task.id)).sprint_status).toBe('planned');
+
+    await act(owner, sprint.id, 'start');
+    expect((await getTask(owner, task.id)).sprint_status).toBe('active');
+    expect((await getBoard(owner, project)).todo[0].sprint_status).toBe('active');
+  });
+});

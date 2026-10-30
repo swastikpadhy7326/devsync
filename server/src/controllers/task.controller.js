@@ -7,7 +7,7 @@ const TASK_SELECT = `
   SELECT t.id, t.project_id, t.title, t.description, t.status, t.priority, t.type, t.position,
          t.due_date, t.created_at, t.updated_at, t.assignee_id, u.name AS assignee_name,
          t.number, p.key_prefix || '-' || t.number AS key,
-         t.sprint_id, s.name AS sprint_name
+         t.sprint_id, s.name AS sprint_name, s.status AS sprint_status
   FROM tasks t
   JOIN projects p ON p.id = t.project_id
   LEFT JOIN users u ON u.id = t.assignee_id
