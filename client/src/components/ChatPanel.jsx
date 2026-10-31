@@ -2,8 +2,11 @@ import { useEffect, useRef, useState } from 'react';
 import { api } from '../api';
 import { useAuth } from '../AuthContext';
 import { getSocket } from '../socket';
+import { prepareFile } from '../lib/images';
+import AttachmentView from './AttachmentView';
 
 const EPOCH = '1970-01-01T00:00:00.000Z';
+const ACCEPT = 'image/png,image/jpeg,image/webp,image/gif,application/pdf';
 
 // Puts messages in time order and removes duplicates (a message can arrive by REST and by socket)
 const merge = (current, incoming) => {
@@ -26,6 +29,7 @@ export default function ChatPanel({ projectId, archived = false }) {
   const [preview, setPreview] = useState(null);
 
   const bottomRef = useRef(null);
+  const fileRef = useRef(null);
   const openRef = useRef(false);
   const previewTimer = useRef(null);
   const baseTitle = useRef(document.title);
@@ -155,7 +159,34 @@ export default function ChatPanel({ projectId, archived = false }) {
     }
   };
 
-    // The new tab is opened first, inside the click, so browsers do not block it as a popup
+  // A photo or PDF, with whatever is typed in the box as its caption
+  const pickFile = async (e) => {
+    const file = e.target.files && e.target.files[0];
+    e.target.value = '';
+    if (!file || sending) return;
+    setSending(true);
+    setError('');
+    try {
+      const { blob, name, type } = await prepareFile(file);
+      const caption = text.trim();
+      const headers = { 'Content-Type': type, 'X-Filename': encodeURIComponent(name) };
+      if (caption) headers['X-Caption'] = encodeURIComponent(caption);
+      const data = await api.upload(`/projects/${projectId}/messages/file`, blob, headers);
+      setMessages((cur) => merge(cur, [data.message]));
+      setText('');
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const openPanel = () => {
+    setPreview(null);
+    setOpen(true);
+  };
+
+  // The new tab is opened first, inside the click, so browsers do not block it as a popup
   const startMeeting = async () => {
     setError('');
     const win = window.open('about:blank', '_blank');
@@ -172,11 +203,6 @@ export default function ChatPanel({ projectId, archived = false }) {
       setError(err.message);
     }
   };
-  
-  const openPanel = () => {
-    setPreview(null);
-    setOpen(true);
-  };
 
   return (
     <div className="fixed bottom-4 right-4 z-30 flex flex-col items-end">
@@ -184,7 +210,7 @@ export default function ChatPanel({ projectId, archived = false }) {
         <div className="mb-3 flex h-96 w-80 flex-col rounded-2xl border border-slate-200 bg-white shadow-xl">
           <div className="flex items-center justify-between border-b border-slate-200 px-4 py-2">
             <h3 className="font-semibold">Project chat</h3>
-                        <button onClick={startMeeting} className="rounded-lg border border-indigo-200 px-2 py-0.5 text-xs font-medium text-indigo-600 hover:bg-indigo-50">
+            <button onClick={startMeeting} className="rounded-lg border border-indigo-200 px-2 py-0.5 text-xs font-medium text-indigo-600 hover:bg-indigo-50">
               Start meeting
             </button>
             <button onClick={() => setOpen(false)} className="text-sm text-slate-500 hover:text-slate-800">
@@ -206,13 +232,20 @@ export default function ChatPanel({ projectId, archived = false }) {
                   <div className="text-xs text-slate-500">
                     {mine ? 'You' : m.user_name} {new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                   </div>
-                  <div
-                    className={`inline-block max-w-[85%] whitespace-pre-wrap break-words rounded-lg px-3 py-1.5 text-sm ${
-                      mine ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-800'
-                    }`}
-                  >
-                    {m.body}
-                  </div>
+                  {m.attachment_id && (
+                    <div className="mb-1">
+                      <AttachmentView id={m.attachment_id} name={m.attachment_name} type={m.attachment_type} size={m.attachment_size} />
+                    </div>
+                  )}
+                  {m.body && (
+                    <div
+                      className={`inline-block max-w-[85%] whitespace-pre-wrap break-words rounded-lg px-3 py-1.5 text-sm ${
+                        mine ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-800'
+                      }`}
+                    >
+                      {m.body}
+                    </div>
+                  )}
                 </div>
               );
             })}
@@ -221,7 +254,20 @@ export default function ChatPanel({ projectId, archived = false }) {
 
           {error && <div className="mx-3 mb-1 rounded bg-red-50 px-2 py-1 text-xs text-red-700">{error}</div>}
 
-          <form onSubmit={send} className="flex gap-2 border-t border-slate-200 p-3">
+          <form onSubmit={send} className="flex items-center gap-2 border-t border-slate-200 p-3">
+            <input ref={fileRef} type="file" accept={ACCEPT} className="hidden" onChange={pickFile} />
+            <button
+              type="button"
+              title="Attach a photo or a PDF"
+              aria-label="Attach a photo or a PDF"
+              disabled={archived || sending}
+              onClick={() => fileRef.current && fileRef.current.click()}
+              className="rounded-lg border border-slate-300 p-1.5 text-slate-600 hover:bg-slate-50 disabled:opacity-60"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48" />
+              </svg>
+            </button>
             <input
               className="min-w-0 flex-1 rounded-lg border border-slate-300 px-3 py-1.5 text-sm outline-none focus:border-indigo-500"
               placeholder={archived ? 'This project is archived' : 'Write a message...'}
@@ -246,7 +292,9 @@ export default function ChatPanel({ projectId, archived = false }) {
           className="mb-2 block w-72 rounded-xl border border-slate-200 bg-white px-3 py-2 text-left shadow-lg"
         >
           <div className="text-xs font-semibold text-indigo-600">{preview.user_name}</div>
-          <div className="truncate text-sm text-slate-700">{preview.body}</div>
+          <div className="truncate text-sm text-slate-700">
+            {preview.body || `Sent a file: ${preview.attachment_name || ''}`}
+          </div>
         </button>
       )}
 

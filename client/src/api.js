@@ -55,7 +55,7 @@ async function request(path, options = {}, retry = true) {
   const res = await fetch(`${API_URL}/api${path}`, {
     ...options,
     headers,
-    body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
+        body: options.raw ? options.body : options.body !== undefined ? JSON.stringify(options.body) : undefined,
   });
 
   if (res.status === 401 && retry && tokens.refresh && !NO_REFRESH.includes(path)) {
@@ -64,6 +64,7 @@ async function request(path, options = {}, retry = true) {
     window.dispatchEvent(new Event('devsync:logout'));
   }
 
+    if (options.asBlob && res.ok) return res.blob();
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new ApiError(data.message || 'Request failed', res.status, data.errors);
   return data;
@@ -74,4 +75,6 @@ export const api = {
   post: (path, body) => request(path, { method: 'POST', body }),
   patch: (path, body) => request(path, { method: 'PATCH', body }),
   delete: (path) => request(path, { method: 'DELETE' }),
+    upload: (path, blob, headers) => request(path, { method: 'POST', body: blob, raw: true, headers }),
+  blob: (path) => request(path, { asBlob: true }),
 };

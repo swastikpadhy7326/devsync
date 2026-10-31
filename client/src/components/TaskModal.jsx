@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { api } from '../api';
 import { useAuth } from '../AuthContext';
 import { getSocket } from '../socket';
+import TaskFiles from './TaskFiles';
 
 const input = 'w-full rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200';
 
@@ -208,6 +209,7 @@ export default function TaskModal({ taskId, members, onClose, onChanged }) {
           </form>
         )}
 
+                <TaskFiles taskId={taskId} yourRole={yourRole} userId={user.id} />
         <hr className="my-6 border-slate-200" />
 
                <div className="mb-3 flex items-center justify-between">
