@@ -16,6 +16,8 @@ const summaryRoutes = require('./routes/summary.routes');
 const sprintRoutes = require('./routes/sprint.routes');
 const attachmentRoutes = require('./routes/attachment.routes');
 const app = express();
+// Behind a proxy (like Render) the client address is in X-Forwarded-For. The login limits need it.
+app.set('trust proxy', process.env.TRUST_PROXY ? Number(process.env.TRUST_PROXY) : process.env.RENDER ? 1 : false);
 
 app.use(helmet());
 // In production only your frontend may call the API. Locally (no CLIENT_ORIGIN) anything goes.

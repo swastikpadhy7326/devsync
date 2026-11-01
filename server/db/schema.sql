@@ -286,3 +286,15 @@ CREATE TABLE IF NOT EXISTS attachments (
 CREATE INDEX IF NOT EXISTS idx_attachments_project ON attachments(project_id);
 CREATE INDEX IF NOT EXISTS idx_attachments_task ON attachments(task_id) WHERE task_id IS NOT NULL;
 CREATE UNIQUE INDEX IF NOT EXISTS idx_attachments_one_per_message ON attachments(message_id) WHERE message_id IS NOT NULL;
+
+-- ---------- Failed login attempts (for the login limits) ----------
+CREATE TABLE IF NOT EXISTS login_attempts (
+    id         BIGSERIAL PRIMARY KEY,
+    email      VARCHAR(255) NOT NULL,
+    ip         VARCHAR(64) NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_login_attempts_pair ON login_attempts(email, ip, created_at);
+CREATE INDEX IF NOT EXISTS idx_login_attempts_ip ON login_attempts(ip, created_at);
+CREATE INDEX IF NOT EXISTS idx_login_attempts_email ON login_attempts(email, created_at);
+CREATE INDEX IF NOT EXISTS idx_login_attempts_time ON login_attempts(created_at);

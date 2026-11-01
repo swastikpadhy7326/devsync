@@ -2,6 +2,7 @@ const bcrypt = require('bcryptjs');
 const pool = require('../db');
 const { signAccessToken, generateRefreshToken, hashToken } = require('../utils/tokens');
 const crypto = require('crypto');
+const loginGuard = require('../utils/loginGuard');
 const { sendPasswordResetEmail } = require('../utils/mailer');
 
 // "Forgot password": always gives the same answer, so nobody can find out who has an account.
@@ -116,9 +117,21 @@ exports.register = async (req, res) => {
   const tokens = await issueTokens(user);
   res.status(201).json({ user, ...tokens });
 };
+// A made-up hash, so a login for an unknown email takes about as long as one for a real account
+const dummyHash = bcrypt.hash('not-a-real-password', 12);
 
 exports.login = async (req, res) => {
   const { email, password } = req.body;
+  const ip = req.ip || 'unknown';
+
+  const lock = await loginGuard.checkLocked(pool, { email, ip });
+  if (lock.locked) {
+    const minutes = Math.ceil(lock.retryAfter / 60);
+    res.set('Retry-After', String(lock.retryAfter));
+    return res.status(429).json({
+      message: `Too many failed login attempts. Try again in ${minutes} minute${minutes === 1 ? '' : 's'}.`,
+    });
+  }
 
   const { rows } = await pool.query(
     'SELECT id, name, email, password_hash, created_at FROM users WHERE email = $1',
@@ -126,17 +139,18 @@ exports.login = async (req, res) => {
   );
   const user = rows[0];
 
-  const passwordOk = user && (await bcrypt.compare(password, user.password_hash));
-  if (!passwordOk) {
+  const passwordOk = await bcrypt.compare(password, user ? user.password_hash : await dummyHash);
+  if (!user || !passwordOk) {
+    await loginGuard.recordFailure(pool, { email, ip });
     // Same message for "no such email" and "wrong password" so attackers learn nothing
     return res.status(401).json({ message: 'Invalid email or password' });
   }
 
+  await loginGuard.clearFailures(pool, { email, ip });
   const { password_hash, ...safeUser } = user;
   const tokens = await issueTokens(safeUser);
   res.json({ user: safeUser, ...tokens });
 };
-
 exports.refresh = async (req, res) => {
   const { refreshToken } = req.body;
 
