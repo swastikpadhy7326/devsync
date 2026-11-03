@@ -1,4 +1,4 @@
-# DevSync API
+﻿# DevSync API
 
 The backend of [DevSync](../README.md): a REST API and a Socket.IO server built with Node.js, Express 5 and PostgreSQL.
 
@@ -61,9 +61,7 @@ Never commit `.env`. It is already listed in `.gitignore`.
 | `npm test` | Runs the automated tests (see below) |
 
 ## Tests
-
-The API has 107 integration tests written with Jest and Supertest. They call the real Express app and a real PostgreSQL database,and cover authentication (including refresh token rotation and password reset), AI summaries with a stubbedprovider, project chat, private meeting links and the project Summary tab , team roles and invitations, the Kanban move logic, comments, and 
-notifications.
+The API has an integration test suite written with Jest and Supertest. The tests call the real Express app and a real PostgreSQL database, and cover authentication (including refresh token rotation and password reset), AI summaries with a stubbed provider, project chat, private meeting links, the project Summary tab, team roles and invitations, the Kanban move logic, comments, notifications, issue keys and task types, completion times, sprints, the burndown chart, attachments, login protection and @mentions. The @mention matching is also covered by plain unit tests with no database. The frontend has Vitest tests for the List, Calendar, sprint, file and mention logic.
 
 **The tests wipe the database they run against**, so they must never point at your real data:
 

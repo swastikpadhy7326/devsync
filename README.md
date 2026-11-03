@@ -55,6 +55,10 @@
 - **Issue keys and work item types:** every work item has a type (task, bug or story) and a key such as `DEV-12`, built from the project name and a number that never repeats, even after a delete. Cards, the List table, the task window and a "Types of work" card on the Summary tab all show them.
 - **Backlog and sprints:** work without a sprint is the backlog. Owners and admins create, start and complete sprints, and only one sprint per project can be active. Completing a sprint keeps its finished work and sends the rest back to the backlog. The Board can show everything, only the active sprint, or only the backlog, and any member can move work between sprints.
 
+- **@mentions:** type @ in a task comment or the project chat and pick a teammate from the list. The server matches the exact names of that project's team members and notifies each person once, never the author, never outsiders, and at most 10 people per message. The alert is live and also saved. In a comment, a mention replaces the usual "commented on your task" alert for that person. Clicking a chat mention opens the board with the chat open.
+- **Attachments:** photos and PDFs in the project chat and on tasks, stored in the database (by default 2 MB per photo, 5 MB per PDF and 50 MB per project). The file type is checked from the file's first bytes, SVG is refused, PDFs are served as downloads, and photos are shrunk in the browser, which also removes GPS data. There is no virus scan.
+- **Login protection:** failed logins are limited per email and address (5), per address (20) and per email (30) within 15 minutes, and answered with 429 and a Retry-After header. Behind a proxy such as Render, set `TRUST_PROXY=1` so the real client address is used.
+
 - **Sprint burndown:** the active sprint shows the work items still open at the end of each day against an ideal line, using the exact completion time of each item. It is approximate by design: there is no history of when an item joined the sprint, a reopened item forgets its old completion, and days are counted in UTC.
 
 
@@ -209,19 +213,25 @@ node scripts/add-chat-messages.js .env
 node scripts/add-task-types-and-keys.js .env --yes
 node scripts/apply-sql.js db/task-completed-at.sql .env --yes
 node scripts/apply-sql.js db/sprints.sql .env --yes
+node scripts/apply-sql.js db/attachments.sql .env --yes
+node scripts/apply-sql.js db/login-attempts.sql .env --yes
+node scripts/apply-sql.js db/mention-notifications.sql .env --yes
 ```
 
 Apply the migration to the database before you deploy the code that needs it.
 
 ### Production environment variables
-
 | Where | Variable | Purpose |
 |---|---|---|
 | Backend | `DATABASE_URL` | PostgreSQL connection string |
 | Backend | `JWT_SECRET` | Secret used to sign access tokens |
 | Backend | `CLIENT_ORIGIN` | Frontend address allowed by CORS and Socket.IO |
+| Backend | `TRUST_PROXY` | Set to `1` behind a proxy such as Render, so login protection sees the real client address |
+| Backend | `APP_URL` | Frontend address used in email links |
+| Backend | `BREVO_API_KEY`, `MAIL_FROM` | Email delivery for invitations and password reset |
+| Backend | `GEMINI_API_KEY`, `AI_MODEL`, `AI_FALLBACK_MODEL` | Optional AI task summaries |
+| Backend | `ATTACHMENT_PROJECT_LIMIT_BYTES` | Optional per-project attachment limit (50 MB by default) |
 | Frontend | `VITE_API_URL` | Backend address, with no trailing slash |
-
 ## Roadmap
 
 - [x] Authentication, teams, roles and invitations
@@ -242,7 +252,10 @@ Apply the migration to the database before you deploy the code that needs it.
 - [x] List and Calendar views
 - [x] Issue keys, work item types and exact completion dates
 - [x] Backlog, sprints and a sprint burndown chart
-- [ ] Ideas for later: a timeline view, story points and saved filters
+- [x] Task types, issue keys, sprints and a burndown chart
+- [x] Photo and PDF attachments in chat and on tasks
+- [x] Login protection with rate limiting
+- [x] @mentions in comments and chat
 
 
 ## Licensex
