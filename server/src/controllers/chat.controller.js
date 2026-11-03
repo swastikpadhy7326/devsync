@@ -1,5 +1,6 @@
 const pool = require('../db');
 const { emitToProject } = require('../realtime');
+const { notifyMentions } = require('../utils/notify');
 
 // A simple per-person limit: 30 messages per minute (kept in memory)
 const WINDOW_MS = 60 * 1000;
@@ -65,6 +66,11 @@ exports.sendMessage = async (req, res) => {
 
   const message = { ...rows[0], user_name: user.rows[0].name };
   emitToProject(req.project.id, 'chat:message', { message });
+    await notifyMentions({
+    text: req.body.body,
+    authorId: req.user.id,
+    projectId: req.project.id,
+  });
   res.status(201).json({ message });
 };
 

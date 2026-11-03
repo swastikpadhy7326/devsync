@@ -7,7 +7,8 @@ exports.listNotifications = async (req, res) => {
   const where = unread ? 'n.user_id = $1 AND n.is_read = FALSE' : 'n.user_id = $1';
 
   const { rows } = await pool.query(
-    `SELECT n.id, n.type, n.message, n.is_read, n.created_at, n.task_id, t.project_id
+    `SELECT n.id, n.type, n.message, n.is_read, n.created_at, n.task_id,
+            COALESCE(t.project_id, n.project_id) AS project_id
      FROM notifications n
      LEFT JOIN tasks t ON t.id = n.task_id
      WHERE ${where}

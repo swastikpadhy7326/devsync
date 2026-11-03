@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { api } from '../api';
 import { useAuth } from '../AuthContext';
 import { getSocket } from '../socket';
 import TaskFiles from './TaskFiles';
+import { applyMention, filterMembers, getMentionQuery, splitMentions } from '../lib/mentions';
 
 const input = 'w-full rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200';
 
@@ -12,9 +13,32 @@ export default function TaskModal({ taskId, members, onClose, onChanged }) {
   const [yourRole, setYourRole] = useState('member');
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState('');
+    const [caret, setCaret] = useState(0);
+  const [picking, setPicking] = useState(true);
+  const commentRef = useRef(null);
+  const names = members.map((m) => m.name);
+
+  // Suggestions appear while the cursor sits right after "@something"
+  const mention = picking ? getMentionQuery(newComment, caret) : null;
+  const suggestions = mention
+    ? filterMembers(members.filter((m) => m.id !== user.id), mention.query)
+    : [];
+
+  const pickMember = (member) => {
+    const result = applyMention(newComment, mention.start, caret, member.name);
+    setNewComment(result.text);
+    setPicking(false);
+    setTimeout(() => {
+      if (commentRef.current) {
+        commentRef.current.focus();
+        commentRef.current.setSelectionRange(result.caret, result.caret);
+        setCaret(result.caret);
+      }
+    }, 0);
+  };
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
-    const [aiEnabled, setAiEnabled] = useState(false);
+  const [aiEnabled, setAiEnabled] = useState(false);
   const [summary, setSummary] = useState('');
   const [summarizing, setSummarizing] = useState(false);
 
@@ -89,10 +113,7 @@ export default function TaskModal({ taskId, members, onClose, onChanged }) {
     }
   };
 
-
-  
-
-  const save = async (e) => {
+const save = async (e) => {
     e.preventDefault();
     setSaving(true);
     setError('');
@@ -236,13 +257,50 @@ export default function TaskModal({ taskId, members, onClose, onChanged }) {
                   <button onClick={() => removeComment(c.id)} className="text-red-600 hover:underline">Delete</button>
                 )}
               </div>
-              <p className="mt-1 whitespace-pre-wrap text-sm">{c.body}</p>
+                            <p className="mt-1 whitespace-pre-wrap text-sm">
+                {splitMentions(c.body, names).map((part, i) =>
+                  part.mention ? (
+                    <span key={i} className="font-semibold text-indigo-600">{part.text}</span>
+                  ) : (
+                    <span key={i}>{part.text}</span>
+                  )
+                )}
+              </p>
             </div>
           ))}
         </div>
 
         <form onSubmit={addComment} className="flex gap-2">
-          <input className={`${input} flex-1`} placeholder="Write a comment..." value={newComment} onChange={(e) => setNewComment(e.target.value)} />
+                    <div className="relative flex-1">
+            {suggestions.length > 0 && (
+              <ul className="absolute bottom-full left-0 mb-1 w-full overflow-hidden rounded-lg border border-slate-200 bg-white shadow-lg">
+                {suggestions.map((m) => (
+                  <li key={m.id}>
+                    <button
+                      type="button"
+                      onMouseDown={(e) => { e.preventDefault(); pickMember(m); }}
+                      className="block w-full px-3 py-1.5 text-left text-sm hover:bg-indigo-50"
+                    >
+                      {m.name}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <input
+              ref={commentRef}
+              className={input}
+              placeholder="Write a comment..."
+              value={newComment}
+              onChange={(e) => {
+                setNewComment(e.target.value);
+                setCaret(e.target.selectionStart);
+                setPicking(true);
+              }}
+              onKeyUp={(e) => setCaret(e.target.selectionStart)}
+              onClick={(e) => setCaret(e.target.selectionStart)}
+            />
+          </div>
           <button className="rounded-lg bg-indigo-600 px-4 py-2 font-medium text-white hover:bg-indigo-700">Send</button>
         </form>
       </div>

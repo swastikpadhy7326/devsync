@@ -298,3 +298,6 @@ CREATE INDEX IF NOT EXISTS idx_login_attempts_pair ON login_attempts(email, ip, 
 CREATE INDEX IF NOT EXISTS idx_login_attempts_ip ON login_attempts(ip, created_at);
 CREATE INDEX IF NOT EXISTS idx_login_attempts_email ON login_attempts(email, created_at);
 CREATE INDEX IF NOT EXISTS idx_login_attempts_time ON login_attempts(created_at);
+-- Mentions in project chat have no task, so notifications can point at a project directly
+ALTER TABLE notifications
+  ADD COLUMN IF NOT EXISTS project_id UUID REFERENCES projects(id) ON DELETE CASCADE;

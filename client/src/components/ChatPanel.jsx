@@ -4,6 +4,7 @@ import { useAuth } from '../AuthContext';
 import { getSocket } from '../socket';
 import { prepareFile } from '../lib/images';
 import AttachmentView from './AttachmentView';
+import { splitMentions } from '../lib/mentions';
 
 const EPOCH = '1970-01-01T00:00:00.000Z';
 const ACCEPT = 'image/png,image/jpeg,image/webp,image/gif,application/pdf';
@@ -15,7 +16,7 @@ const merge = (current, incoming) => {
   return [...map.values()].sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
 };
 
-export default function ChatPanel({ projectId, archived = false }) {
+export default function ChatPanel({ projectId, archived = false, members = [], openOnLoad = false }) {
   const { user } = useAuth();
   const seenKey = `devsync_chat_seen_${user.id}_${projectId}`;
 
@@ -34,6 +35,12 @@ export default function ChatPanel({ projectId, archived = false }) {
   const previewTimer = useRef(null);
   const baseTitle = useRef(document.title);
   openRef.current = open;
+    const names = members.map((m) => m.name);
+
+  // Arriving from a mention alert (?chat=1) opens the chat
+  useEffect(() => {
+    if (openOnLoad) setOpen(true);
+  }, [openOnLoad, projectId]);
 
   const readSeen = () => {
     try { return localStorage.getItem(seenKey); } catch { return null; }
@@ -243,7 +250,15 @@ export default function ChatPanel({ projectId, archived = false }) {
                         mine ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-800'
                       }`}
                     >
-                      {m.body}
+                                            {splitMentions(m.body, names).map((part, i) =>
+                        part.mention ? (
+                          <span key={i} className={`font-semibold ${mine ? 'text-indigo-100 underline' : 'text-indigo-600'}`}>
+                            {part.text}
+                          </span>
+                        ) : (
+                          <span key={i}>{part.text}</span>
+                        )
+                      )}
                     </div>
                   )}
                 </div>

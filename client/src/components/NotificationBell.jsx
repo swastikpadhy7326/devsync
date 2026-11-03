@@ -50,7 +50,8 @@ export default function NotificationBell() {
       setItems((prev) => prev.map((x) => (x.id === n.id ? { ...x, is_read: true } : x)));
       setUnread((c) => Math.max(0, c - 1));
     }
-    if (n.project_id && n.task_id) navigate(`/projects/${n.project_id}?task=${n.task_id}`);
+        if (n.project_id && n.task_id) navigate(`/projects/${n.project_id}?task=${n.task_id}`);
+    else if (n.project_id) navigate(`/projects/${n.project_id}?chat=1`);
   };
 
   const markAll = async () => {

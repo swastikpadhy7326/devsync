@@ -334,7 +334,12 @@ export default function BoardPage() {
       {openTaskId && (
         <TaskModal taskId={openTaskId} members={members} onClose={closeTask} onChanged={scheduleLoad} />
       )}
-          <ChatPanel projectId={projectId} archived={Boolean(project?.is_archived)} />
+                <ChatPanel
+        projectId={projectId}
+        archived={Boolean(project?.is_archived)}
+        members={members}
+        openOnLoad={params.get('chat') === '1'}
+      />
     </Layout>
   );
 }
